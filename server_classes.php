@@ -44,6 +44,7 @@ class Server{
         $this->Check_server();
         $this->Restore();
         if ($this->Clans==NULL){
+          echo "creating new clans";
             $this->NewClans();
         }
     }
@@ -55,6 +56,7 @@ class Server{
       echo "here11\n";
         if ($this->Clans){
           echo "here10\n";
+          echo $this->fight_rand;
             if (rand(0,$this->fight_rand) == 1){
               echo "here100\n";
                 $rand1=rand(0,count($this->Clans)-1);
@@ -176,7 +178,7 @@ class Server{
             $pl=new Player($row['id'],$row['nick'],$row['frags'],$row['deaths'],$row['level'],$row['clan_id'],$row['in_fight']);
             $i=0;
             foreach ($Clans as $clan) {
-                if ($clan->getClanId()==$pl->getPlayerClan()){
+                if ($clan->id==$pl->clan_id){
                   $Clans[$i]->addPlayer($pl);
                   // array_push($Clans[$i]->players,$pl);
                 }
@@ -200,12 +202,12 @@ class Server{
         $ids=explode(',',$ids_list);
         $i=0;
         foreach ($this->Clans as $clan) {
-            if ($clan->getClanId()==$clan_id){
+            if ($clan->id==$clan_id){
                 $j=0;
-                foreach ($clan->getPlayers() as $player) {
+                foreach ($clan->players as $player) {
                     foreach ($ids as $id) {
-                        if ($player->getPlayerId()==$id){
-                            array_push($ret,$this->Clans[$i]->getPlayer($j));
+                        if ($player->id==$id){
+                            array_push($ret,$this->Clans[$i]->players[$j]);
                         }
                     }
                     $j++;
@@ -218,8 +220,8 @@ class Server{
 
     function Backup(){
         foreach ($this->Clans as $clan){
-            $id=$clan->getClanId();
-            $name=$clan->getClanName();
+            $id=$clan->id;
+            $name=$clan->name;
             $data = $this->connection->query( "SELECT * FROM clans WHERE id=$id");
             if ($data->num_rows){
                 $query="UPDATE clans SET title=\"$name\" WHERE id=$id";
@@ -232,17 +234,25 @@ class Server{
               $result = $this->connection->query($query);
               if (!$result) die("Error during creating table in Backup 2".$this->connection->connect_errno.$this->connection->connect_error);
             }
-            foreach ($clan->getPlayers() as $player){
-                $data = $this->connection->query( "SELECT * FROM players WHERE id=$player->getPlayerId()");
+            foreach ($clan->players as $player){
+              $nick = $player->nick;
+              $frags = $player->frags;
+              $deaths =$player->deaths;
+              $level=$player->level;
+              $clan_id=$player->clan_id;
+              $in_fight=$player->in_fight;
+              $id=$player->id;
+                $data = $this->connection->query( "SELECT * FROM players WHERE id=$id");
                 if ($data->num_rows){
-                    $query="UPDATE players SET nick=\"$player->getPlayerNick()\",frags=$player->getPlayerFrags(),deaths=$player->getPlayerDeaths(),level=$player->getPlayerLevel(),clan_id=$player->getPlayerClan(),in_fight=$player->isInFight() WHERE id=$player->getPlayerId()";
+                    $query="UPDATE players SET nick=\"$nick\",frags=$frags,deaths=$deaths,level=$level,clan_id=$clan_id,in_fight=$in_fight WHERE id=$id";
                     $result = $this->connection->query($query);
                     if (!$result) die("Error during creating table in Backup 3".$this->connection->connect_errno.$this->connection->connect_error);
                 }
                 else{
-                  $query="INSERT INTO players (nick,frags,deaths,level,clan_id,id,in_fight) VALUES (\"$player->getPlayerNick()\",$player->getPlayerFrags(),$player->getPlayerDeaths(),$player->getPlayerLevel(),$player->getPlayerClan(),$player->getPlayerId(),$player->isInFight())";
+                  $query="INSERT INTO players (nick,frags,deaths,level,clan_id,id,in_fight) VALUES (\"$nick\",$frags,$deaths,$level,$clan_id,$id,$in_fight)";
                   if ($this->debug) echo $query;
                   $result = $this->connection->query($query);
+                  echo "$result\n";
                   if (!$result) die("Error during creating table in Backup 4".$this->connection->connect_errno.$this->connection->connect_error);
                 }
             }
@@ -312,22 +322,22 @@ class Fight{
     function StartFight($Server){
         $i=0;
         $this->c1=array();
-        foreach ($Server->Clans[$this->attacker_id]->getPlayers() as $player) {
-            if ((rand(0,3)==0)&&!($player->isInFight())){
+        foreach ($Server->Clans[$this->attacker_id]->players as $player) {
+            if ((rand(0,3)==0)&&(!$player->in_fight)){
                 array_push($this->c1,NULL);
-                $this->c1[count($this->c1)-1]=&$Server->Clans[$this->attacker_id]->getPlayer($i);
-                $this->c1[count($this->c1)-1]->setToFight();
+                $this->c1[count($this->c1)-1]=&$Server->Clans[$this->attacker_id]->players[$i];
+                $this->c1[count($this->c1)-1]->$in_fight=1;
             }
             $i++;
         }
         echo "\n";
         $i=0;
         $this->c2=array();
-        foreach ($Server->Clans[$this->defender_id]->getPlayers() as $player) {
-            if ((rand(0,3)==0)&&!($player->isInFight())){
+        foreach ($Server->Clans[$this->defender_id]->players as $player) {
+            if ((rand(0,3)==0)&&(!$player->in_fight)){
               array_push($this->c2,NULL);
-              $this->c2[count($this->c2)-1]=&$Server->Clans[$this->defender_id]->getPlayer($i);
-              $this->c2[count($this->c2)-1]->setToFight();
+              $this->c2[count($this->c2)-1]=&$Server->Clans[$this->defender_id]->players[$i];
+              $this->c2[count($this->c2)-1]->$in_fight=1;
             }
             $i++;
         }
@@ -336,27 +346,14 @@ class Fight{
 }
 
 class Clan{
-    private $id;
-    private $name;
-    private $players=array();
+    public $id;
+    public $name;
+    public $players=array();
 
     function __construct($i,$n) {
         $this->id=$i;
         $this->name=$n;
     }
-    function getClanName(){
-      return $this->name;
-    }
-    function getClanId(){
-      return $this->id;
-    }
-    function getPlayers(){
-      return $this->players;
-    }
-    function getPlayer($id){
-      return $this->players[array_search($id,$this->players)];
-    }
-
 
     function removePlayer($id){
       $key = array_search($id,$this->players);
@@ -380,13 +377,13 @@ class Clan{
     }
  }
 class Player{
-    private $id;
-    private $nick;
-    private $frags;
-    private $deaths;
-    private $level;
-    private $clan_id;
-    private $in_fight;
+    public $id;
+    public $nick;
+    public $frags;
+    public $deaths;
+    public $level;
+    public $clan_id;
+    public $in_fight;
 
     function __construct($i,$n,$f,$d,$l,$c,$fgt) {
         $this->id=$i;
@@ -398,34 +395,11 @@ class Player{
         $this->in_fight=$fgt;
     }
 
-    function getPlayerId(){
-      return $this->id;
+    function Killed(){
+      $this->frags++;
     }
-    function getPlayerNick(){
-      return $this->nick;
-    }
-    function getPlayerClan(){
-      return $this->clan_id;
-    }
-    function getPlayerFrags(){
-      return $this->frags;
-    }
-    function getPlayerDeaths(){
-      return $this->deaths;
-    }
-    function getPlayerLevel(){
-      return $this->level;
-    }
-    function isInFight(){
-      return $this->$in_fight;
-    }
-    function setToFight(){
-      $this->$in_fight=1;
-      return 1;
-    }
-
     function Dead(){
-      $this->$in_fight=0;
+      $this->in_fight=0;
       $this->deaths++;
     }
     function LevelUp(){
