@@ -17,7 +17,7 @@ class Server{
     public $max_add;
     public $add_time;
     public $sleep_time;
-
+// test message
     private $hostname;
     private $username;
     private $password;
