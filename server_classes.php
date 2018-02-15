@@ -66,33 +66,16 @@ class Server{
                     goto rerand;
                 }
                 echo "here50\n";
-                $add=rand($this->min_add*60,$this->max_add*60);
+                $add=rand($this->min_add,$this->max_add);
                 $resolved=time()+$add;
                 echo "here20\n";
                 $attacker_id=$this->Clans[$rand1]->id;
                 $defender_id=$this->Clans[$rand2]->id;
                 echo "here3\n";
-                $i=0;
-                $c1=array();
-                foreach ($this->Clans[$rand1]->players as $player) {
-                    if ((rand(0,3)==0)&&($player->in_fight!=1)){
-                        $this->Clans[$rand1]->players[$i]->in_fight=1;
-                        array_push($c1,$this->Clans[$rand1]->players[$i]);
-                    }
-                    $i++;
-                }
-                echo "here4\n";
-                $i=0;
-                $c2=array();
-                foreach ($this->Clans[$rand2]->players as $player) {
-                    if ((rand(0,3)==0)&&($player->in_fight!=1)){
-                      $this->Clans[$rand2]->players[$i]->in_fight=1;
-                      array_push($c2,$this->Clans[$rand2]->players[$i]);
-                    }
-                    $i++;
-                }
-                $tmp=New Fight($attacker_id,$defender_id,time(),$resolved,0,$c1,$c2);
+
+                $tmp=New Fight($attacker_id,$defender_id,time(),$resolved,0,NULL,NULL);
                 array_push($this->Fights,$tmp);
+
             }
         }
     }
@@ -286,12 +269,14 @@ class Server{
 
     function MakeList($players){
         $res="";
-        foreach ($players as $player){
-            if (strlen($res)<=0){
-                $res=$player->id;
-            }
-            else{
-                $res=$res.",".$player->id;
+        if ($players){
+            foreach ($players as $player){
+                if (strlen($res)<=0){
+                    $res=$player->id;
+                }
+                else{
+                    $res=$res.",".$player->id;
+                }
             }
         }
         return $res;
@@ -317,51 +302,29 @@ class Fight{
         $this->c2=$c2;
     }
 
-    function StartFight(){
-        // 1) выбираем играков из первого клана
-
-
-      // $data = $db_server->query( "SELECT * FROM attacks" );
-      // $ext=0;
-      // while ( $row = $data->fetch_assoc() ) {
-      //   $c1=Get_clan_title($id1);
-      //   $c2=Get_clan_title($id2);
-      //   if (($row['attacker']==$c1) && ($row['defender']==$c2) && ($row['resolved']==$resolved)){
-      //     // echo "\n FOUND!\n";
-      //     $ext=1;
-      //   }
-      // }
-      // if ($ext){
-      //   $text='';
-      //   $data = $db_server->query( "SELECT * FROM c".$id1 );
-      //   while ( $row = $data->fetch_assoc() ) {
-      //     if (((int)rand(0,1) == 1) && ($row['infight'] != 1)){
-      //       // игрок будет играть
-      //       $text=$text.(string)$row['id'].',';
-      //       $db_server->query( "UPDATE c{$id1} SET infight = 1 WHERE id='{$row['id']}'");
-      //     }
-      //     // $db_server->query( "UPDATE c{$id1} SET infight = 0 WHERE id='{$row['id']}'");
-      //   }
-      //   // echo "\n".$text."\n";
-      //   if ( !$db_server->query( "UPDATE attacks SET c1 = '{$text}' WHERE attacker='{$c1}' AND defender='{$c2}' AND resolved='{$resolved}'" ) ) {
-      //     echo "Не удалось создать или обновить запись: (" . $db_server->errno . ") " . $db_server->error;
-      //   }
-      //   $bcp1=$text;
-      //   $text='';
-      //   $data = $db_server->query( "SELECT * FROM c".$id2 );
-      //   while ( $row = $data->fetch_assoc() ) {
-      //     if (((int)rand(0,1) == 1) && ($row['infight'] != 1)){
-      //       // игрок будет играть
-      //       $text=$text.(string)$row['id'].',';
-      //       $db_server->query( "UPDATE c{$id2} SET infight = 1 WHERE id='{$row['id']}'");
-      //     }
-      //     // $db_server->query( "UPDATE c{$id2} SET infight = 0 WHERE id='{$row['id']}'");
-      //   }
-      //   // echo "\n".$text."\n";
-      //   $bcp2=$text;
-      //   if ( !$db_server->query( "UPDATE attacks SET c2 = '{$text}' WHERE attacker='{$c1}' AND defender='{$c2}' AND resolved='{$resolved}'" ) ) {
-      //     echo "Не удалось создать или обновить запись: (" . $db_server->errno . ") " . $db_server->error;
-      //   }
+    function StartFight($Server){
+        $i=0;
+        $this->c1=array();
+        foreach ($Server->Clans[$this->attacker_id]->players as $player) {
+            if ((rand(0,3)==0)&&($player->in_fight!=1)){
+                array_push($this->c1,NULL);
+                $this->c1[count($this->c1)-1]=&$Server->Clans[$this->attacker_id]->players[$i];
+                $this->c1[count($this->c1)-1]->in_fight=1;
+            }
+            $i++;
+        }
+        echo "here4\n";
+        $i=0;
+        $this->c2=array();
+        foreach ($Server->Clans[$this->defender_id]->players as $player) {
+            if ((rand(0,3)==0)&&($player->in_fight!=1)){
+              array_push($this->c2,NULL);
+              $this->c2[count($this->c2)-1]=&$Server->Clans[$this->defender_id]->players[$i];
+              $this->c2[count($this->c2)-1]->in_fight=1;
+            }
+            $i++;
+        }
+        $this->in_progress=1;
     }
 }
 

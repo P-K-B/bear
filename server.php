@@ -5,17 +5,23 @@
     // 1 создаем подключение к бд
     $Server=new Server();
     $Time=new Time();
+    $was=0;
     while(1){
         if ($Time->DeltaTime()>=$Server->add_time){
-          echo "here1\n";
-            $Server->NewFight();
-            echo "here2\n";
-            $Time->Update();
+            if (!$was){
+                echo "here1\n";
+                $Server->NewFight();
+                echo "here2\n";
+                $Time->Update();
+                if ($Server->Fight){
+                    $was=1;
+                }
+            }
         }
         $i=0;
         foreach ($Server->Fights as $fight) {
             if (($fight->resolved<=time())&&!($fight->in_progress)){
-                $Server->Fights[$i]->StartFight();
+                $Server->Fights[$i]->StartFight($Server);
             }
             $i++;
         }
