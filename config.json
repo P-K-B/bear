@@ -1,0 +1,13 @@
+{
+  "debug": 1,
+  "fight_rand": 1,
+  "min_add": 2,
+  "max_add": 4,
+  "hostname": "localhost",
+  "username": "root",
+  "password": "root",
+  "database": "server2",
+  "port": ":8889",
+  "sleep_time": 5,
+  "add_time": 5
+}
