@@ -13,7 +13,7 @@
                 $Server->NewFight();
                 echo "here2\n";
                 $Time->Update();
-                if ($Server->Fight){
+                if ($Server->Fights){
                     $was=1;
                 }
             }

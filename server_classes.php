@@ -84,11 +84,11 @@ class Server{
         $this->connection = new mysqli($this->hostname.$this->port, $this->username, $this->password);
       	if ($this->connection->connect_errno) die("Unable to connect to MySQL server:".$this->connection->connect_errno.$this->connection->connect_error);
       	$this->connection->query("SET NAMES 'utf8'");
-        if ($this->connection && $this->debug) echo ("Connected to MySQL server.\n");
+        if ($this->connection && $this->debug) echo ("done Set names.\n");
       	$this->connection->query("SET CHARACTER SET 'utf8'");
-        if ($this->connection && $this->debug) echo ("Connected to MySQL server.\n");
+        if ($this->connection && $this->debug) echo ("done Set character set.\n");
       	$this->connection->query("SET SESSION collation_connection = 'utf8_general_ci'");
-        if ($this->connection && $this->debug) echo ("Connected to MySQL server.\n");
+        if ($this->connection && $this->debug) echo ("done SET SESSION.\n");
     }
 
     function Check_server() {
@@ -153,7 +153,8 @@ class Server{
             $tmp=new Clan($i,"clan$i");
             for ($k = 0; $k < 29; $k++) {
                 $pl=new Player($c,$unc[$c],0,0,0,$i,0);
-                array_push($tmp->players,$pl);
+                $tmp->addPlayer($pl);
+                // array_push($tmp->players,$pl);
                 $c++;
             }
             array_push($Clans,$tmp);
@@ -174,7 +175,8 @@ class Server{
             $i=0;
             foreach ($Clans as $clan) {
                 if ($clan->id==$pl->clan_id){
-                  array_push($Clans[$i]->players,$pl);
+                  $Clans[$i]->addPlayer($pl);
+                  // array_push($Clans[$i]->players,$pl);
                 }
                 $i++;
             }
@@ -198,10 +200,10 @@ class Server{
         foreach ($this->Clans as $clan) {
             if ($clan->id==$clan_id){
                 $j=0;
-                foreach ($clan->players as $player) {
+                foreach ($clan->getPlayers() as $player) {
                     foreach ($ids as $id) {
                         if ($player->id==$id){
-                            array_push($ret,$this->Clans[$i]->players[$j]);
+                            array_push($ret,$this->Clans[$i]->getPlayer($j));
                         }
                     }
                     $j++;
@@ -225,7 +227,7 @@ class Server{
               $result = $this->connection->query($query);
               if (!$result) die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
             }
-            foreach ($clan->players as $player){
+            foreach ($clan->getPlayers() as $player){
                 $data = $this->connection->query( "SELECT * FROM players WHERE id=$player->id");
                 if ($data->num_rows){
                     $query="UPDATE players SET nick=\"$player->nick\",frags=$player->frags,deaths=$player->deaths,level=$player->level,clan_id=$player->clan_id,in_fight=$player->in_fight WHERE id=$player->id";
@@ -305,10 +307,10 @@ class Fight{
     function StartFight($Server){
         $i=0;
         $this->c1=array();
-        foreach ($Server->Clans[$this->attacker_id]->players as $player) {
+        foreach ($Server->Clans[$this->attacker_id]->getPlayers() as $player) {
             if ((rand(0,3)==0)&&($player->in_fight!=1)){
                 array_push($this->c1,NULL);
-                $this->c1[count($this->c1)-1]=&$Server->Clans[$this->attacker_id]->players[$i];
+                $this->c1[count($this->c1)-1]=&$Server->Clans[$this->attacker_id]->getPlayer($i);
                 $this->c1[count($this->c1)-1]->in_fight=1;
             }
             $i++;
@@ -316,10 +318,10 @@ class Fight{
         echo "here4\n";
         $i=0;
         $this->c2=array();
-        foreach ($Server->Clans[$this->defender_id]->players as $player) {
-            if ((rand(0,3)==0)&&($player->in_fight!=1)){
+        foreach ($Server->Clans[$this->defender_id]->getPlayers() as $player) {
+            if ((rand(0,3)==0)&&!($player->in_fight)){
               array_push($this->c2,NULL);
-              $this->c2[count($this->c2)-1]=&$Server->Clans[$this->defender_id]->players[$i];
+              $this->c2[count($this->c2)-1]=&$Server->Clans[$this->defender_id]->getPlayer($i);
               $this->c2[count($this->c2)-1]->in_fight=1;
             }
             $i++;
@@ -331,14 +333,47 @@ class Fight{
 class Clan{
     public $id;
     public $name;
-    public $players=array();
+    private $players=array();
 
     function __construct($i,$n) {
         $this->id=$i;
         $this->name=$n;
     }
-}
 
+    function getPlayers(){
+      return $this->players;
+    }
+    function getPlayer($id){
+      return array_search($id,$this->players);
+    }
+
+
+    function removePlayer($id){
+      $key = array_search($id,$this->players);
+
+      if($key){
+        unset($this->players[$key]);
+        sort($this->players);
+        return 0;
+      }
+      else{
+        return -1;
+      }
+    }
+    function addPlayer($id){
+      $key = array_search($id,$this->players);
+      if($key) return -1;
+      else {
+        array_push($this->players, $id);
+        sort($this->players);
+        return 0;
+      }
+    }
+
+    function addArrayPlayers($playersArray){
+      $this->players += $playersArray;
+    }
+ }
 class Player{
     public $id;
     public $nick;
@@ -373,5 +408,4 @@ class Time{
         return time()-$this->saved_time;
     }
 }
-
 ?>
