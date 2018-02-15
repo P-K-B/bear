@@ -1,8 +1,8 @@
 {
   "debug": 1,
   "fight_rand": 1,
-  "min_add": 2,
-  "max_add": 4,
+  "min_add": 10,
+  "max_add": 11,
   "hostname": "localhost",
   "username": "root",
   "password": "root",
