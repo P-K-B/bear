@@ -6,31 +6,36 @@
     $Server=new Server();
     $Time=new Time();
     $was=0;
-    while(1){
-        if ($Time->DeltaTime()>=$Server->add_time){
-            if (!$was){
+    while (1) {
+        if ($Time->DeltaTime()>=$Server->AddTime()) {
+            if ($was!=1) {
                 echo "here1\n";
                 $Server->NewFight();
                 echo "here2\n";
                 $Time->Update();
-                if ($Server->Fight){
+                if ($Server->Fights) {
                     $was=1;
                 }
             }
         }
         $i=0;
+        // FIXME Тут явно надо идти с конца. иначе при удалении теряется один бой (сдвиг массива)
         foreach ($Server->Fights as $fight) {
-            if (($fight->resolved<=time())&&($fight->in_progress == 0)){
+            if (($fight->resolved<=time())&&($fight->in_progress == 0)) {
                 $Server->Fights[$i]->StartFight($Server);
+            }
+            elseif($fight->in_progress == 1){
+              $Server->Fights[$i]->Move($Server);
+              if ((count($Server->Fights[$i]->c1) == 0) || (count($Server->Fights[$i]->c2) == 0)){
+                $Server->EndFight($Server->Fights[$i],$i);
+              }
             }
             $i++;
         }
         print_r($Server->Fights);
         // break;
         $Server->Backup();
-        sleep($Server->sleep_time);
+        $Server->Sleepp();
     }
 
     // 2 проверяем таблицы
-
-?>
