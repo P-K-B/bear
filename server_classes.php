@@ -1,6 +1,10 @@
 <?php
 
-//TODO:check = link for players
+// TODO: check '=' link for players
+// TODO: Веб монитор (вероятно на основе javascropt?)
+// TODO: Проверить и утвердить классы
+// TODO: Написать коментарии!!!
+// TODO: (когданибудь) Наверое, было бы правильно, избавиться от public...
 
 class Server{
     public $Fights;
