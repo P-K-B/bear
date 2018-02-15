@@ -14,7 +14,7 @@
         }
         $i=0;
         foreach ($Server->Fights as $fight) {
-            if (($fight->resolved<=time())&&($fight->in_progress == 0)){
+            if (($fight->resolved<=time())&&!($fight->in_progress)){
                 $Server->Fights[$i]->StartFight();
             }
             $i++;
@@ -22,7 +22,7 @@
         print_r($Server->Fights);
         // break;
         $Server->Backup();
-        sleep($Server->sleep_time);
+        sleep($Server->getSleepTime());
     }
 
     // 2 проверяем таблицы

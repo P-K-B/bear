@@ -1,4 +1,4 @@
-// https://vimeo.com/channels/learningp5js/142698164
+
 
 function setup() {
   createCanvas(200, 200);

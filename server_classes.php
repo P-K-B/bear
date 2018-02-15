@@ -16,8 +16,9 @@ class Server{
     public $min_add;
     public $max_add;
     public $add_time;
-    public $sleep_time;
-// test message
+
+
+    private $sleep_time;
     private $hostname;
     private $username;
     private $password;
@@ -47,6 +48,9 @@ class Server{
         }
     }
 
+    function getSleepTime(){
+      return $this->sleep_time;
+    }
     function NewFight(){
       echo "here11\n";
         if ($this->Clans){
@@ -155,10 +159,10 @@ class Server{
             }
         }
         $unc = array();
-        for ($i = 0; $i < count($dt); $i++) {
-            if ($dt[$i] != NULL) {
-                $unc[] = $dt[$i];
-            }
+        foreach ($dt as $i) {
+          if ($i != NULL) {
+              $unc[] = $i;
+          }
         }
         $c = 0;
         $Clans=array();
@@ -228,7 +232,7 @@ class Server{
     function Backup(){
         foreach ($this->Clans as $clan){
             $data = $this->connection->query( "SELECT * FROM clans WHERE id=$clan->id");
-            if ($data->num_rows > 0 ){
+            if ($data->num_rows){
                 $query="UPDATE clans SET title=\"$clan->name\" WHERE id=$clan->id";
                 $result = $this->connection->query($query);
                 if (!$result) die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -240,7 +244,7 @@ class Server{
             }
             foreach ($clan->players as $player){
                 $data = $this->connection->query( "SELECT * FROM players WHERE id=$player->id");
-                if ($data->num_rows > 0 ){
+                if ($data->num_rows){
                     $query="UPDATE players SET nick=\"$player->nick\",frags=$player->frags,deaths=$player->deaths,level=$player->level,clan_id=$player->clan_id,in_fight=$player->in_fight WHERE id=$player->id";
                     $result = $this->connection->query($query);
                     if (!$result) die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -257,7 +261,7 @@ class Server{
             $c1=$this->MakeList($tab->c1);
             $c2=$this->MakeList($tab->c2);
             $data = $this->connection->query( "SELECT * FROM attacks WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared");
-            if ($data->num_rows > 0 ){
+            if ($data->num_rows){
                 $query="UPDATE attacks SET c1=$c1, c2=$c2 WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
                 if ($c1 && !$c2) $query="UPDATE attacks SET c1=\"$c1\", c2=NULL WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
                 if (!$c1 && $c2) $query="UPDATE attacks SET c1=NULL, c2=\"$c2\" WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
@@ -393,7 +397,7 @@ class Player{
 }
 
 class Time{
-    public $saved_time;
+    private $saved_time;
 
     function __construct() {
         $this->saved_time=time();
