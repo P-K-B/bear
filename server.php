@@ -1,5 +1,4 @@
 <?php
-
     define('_JEXEC', 1);
     require_once('server_classes.php');
     // 1 создаем подключение к бд
@@ -14,6 +13,7 @@
                 echo "here2\n";
                 $Time->Update();
                 if ($Server->Fights){
+                  echo "fight created";
                     $was=1;
                 }
             }
@@ -25,6 +25,7 @@
             }
             $i++;
         }
+        echo "Fights:\n";
         print_r($Server->Fights);
         // break;
         $Server->Backup();
