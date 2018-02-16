@@ -7,21 +7,16 @@
 
 class Server
 {
-    public $Fights;
-    public $Time;
-    public $Clans=array();
-    public $connection;
+    public $Fights; // Массив содержит информацию по боям ан сервере
+    public $Time; // Для работы с времинем (в часности, для отслеживания начало боев)
+    public $Clans=array(); // Массив содержит информацию по кланам на сервере
+    public $connection; // Объект, отвечающий за подключение к БД
 
-    public $config;
+    public $config; // Объект, содержащий информацию о пользовательских настройках (подробнее в файле config.json)
 
-    public function Sleepp()
+    public function Sleepp() // Перевести сервер в спящий режим на вермя (время берется из config)
     {
         sleep($this->config["sleep_time"]);
-    }
-
-    public function AddTime()
-    {
-        return $this->config["add_time"];
     }
 
     public function __construct()
@@ -37,32 +32,33 @@ class Server
         }
     }
 
-    public function NewFight()
+    public function NewFight() // Функция создание нового боя
     {
-        if ($this->Clans) {
+        if ($this->Clans) { // Если на сервере нет кланов, то некому сражаться
             if (rand(1, $this->config["fight_rand"]) == 1) {
-                $rand1=rand(0, count($this->Clans)-1);
+                $rand1=array_rand($this->Clans); // Случайно выбираем атакующего
                 rerand:
-                $rand2=rand(0, count($this->Clans)-1);
-                if ($rand1==$rand2) {
+                $rand2=array_rand($this->Clans); // Сулчайно выбираем защищающегося
+                if ($rand1==$rand2) { // Атакующий не может быть защищающимся
                     goto rerand;
                 }
-                $add=rand($this->config["min_add"], $this->config["max_add"]);
+                $add=rand($this->config["min_add"], $this->config["max_add"]); // Определяем кокга состаится бой
                 $resolved=time()+$add;
                 $attacker_id=$this->Clans[$rand1]->id;
                 $defender_id=$this->Clans[$rand2]->id;
-                $tmp=new Fight($attacker_id, $defender_id, time(), $resolved, 0, null, null);
+                $tmp=new Fight($attacker_id, $defender_id, time(), $resolved, 0, null, null); // Оаздаем объект боя
                 array_push($this->Fights, $tmp);
             }
         }
     }
 
-    public function Connect()
+    public function Connect() // Функция подключения к БД
     {
         $this->connection = new mysqli($this->config["hostname"].$this->config["port"], $this->config["username"], $this->config["password"]);
         if ($this->connection->connect_errno) {
             die("Unable to connect to MySQL server:".$this->connection->connect_errno.$this->connection->connect_error);
         }
+        // Установка параметров соединения (не уверен, что это надо)
         $this->connection->query("SET NAMES 'utf8'");
         $this->connection->query("SET CHARACTER SET 'utf8'");
         $this->connection->query("SET SESSION collation_connection = 'utf8_general_ci'");
@@ -71,7 +67,7 @@ class Server
         }
     }
 
-    public function Check_server()
+    public function Check_server() // Функция проверки состояния баз в БД и самой БД, при необходимости создаем их (если БД "новая")
     {
         $query = "CREATE DATABASE IF NOT EXISTS {$this->config["database"]}";
         $result = $this->connection->query($query);
@@ -124,10 +120,12 @@ class Server
         }
     }
 
-    public function NewClans()
+    public function NewClans() // Функция создания новых кланов (если создаем новый сервер и новые БД соответственно)
     {
-        echo "Made new!\n";
-        $homepage = file_get_contents('names.pkb', true);
+        if ($this->config["debug"]) {
+            echo "Made new!\n";
+        }
+        $homepage = file_get_contents('names.pkb', true); // возможные имена игроков находятся в файле names.pkb
         $dt = explode("\n", $homepage);
         if ($dt[count($dt)] == null) {
             array_pop($dt);
@@ -150,6 +148,7 @@ class Server
         }
         $c = 0;
         $Clans=array();
+        // Имен хватает на создание 10 кланов по 29 игроков в каждом
         for ($i = 1; $i <= 10; $i++) {
             $tmp=new Clan($i, "clan$i");
             for ($k = 0; $k < 29; $k++) {
@@ -162,7 +161,7 @@ class Server
         $this->Clans=$Clans;
     }
 
-    public function Restore()
+    public function Restore() // Функция востановления сервера через БД. Если БД пустая (или новая) то ничего не проихайдет
     {
         $Clans=array();
         $result = $this->connection->query("SELECT * FROM clans");
@@ -193,7 +192,7 @@ class Server
         $this->Fights=$Fights;
     }
 
-    public function FindPlayers($ids_list, $clan_id)
+    public function FindPlayers($ids_list, $clan_id) // Поиск игроков по id в объектах Clans для помещения их в объект боя при операции Restore
     {
         $ret=array();
         $ids=explode(',', $ids_list);
@@ -204,7 +203,8 @@ class Server
                 foreach ($clan->players as $player) {
                     foreach ($ids as $id) {
                         if ($player->id==$id) {
-                            array_push($ret, $this->Clans[$i]->players[$j]);
+                            array_push($ret, null);
+                            $ret[count($ret)-1]=&$this->Clans[$i]->players[$j];
                         }
                     }
                     $j++;
@@ -215,7 +215,7 @@ class Server
         return $ret;
     }
 
-    public function Backup()
+    public function Backup() // Функция резервного копирования текущего состаяния сервера в БД (для работы функции Restore)
     {
         foreach ($this->Clans as $clan) {
             $data = $this->connection->query("SELECT * FROM clans WHERE id=$clan->id");
@@ -302,7 +302,7 @@ class Server
         }
     }
 
-    public function MakeList($players)
+    public function MakeList($players) // Функция перевода массива объектов игроков, находящихся в бое, в строку дял Backup
     {
         $res="";
         if ($players) {
@@ -316,7 +316,7 @@ class Server
         }
         return $res;
     }
-    public function Log($event)
+    public function Log($event) // Функция записи сбытия в log БД
     {
         $query="INSERT INTO log (timemark,eventt) VALUES(".time().",\"$event\")";
         if ($this->config["debug"]) {
@@ -327,18 +327,19 @@ class Server
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
     }
-    public function EndFight($fight, $pos)
+    public function EndFight($fight, $pos) // Функция завершения боя
     {
         $i=0;
-        foreach ($fight->c1 as $player) {
+        foreach ($fight->c1 as $player) { // Вывод игроков из состояния "в бою"
             $fight->c1[$i]->in_fight=0;
             $i++;
         }
         $i=0;
-        foreach ($fight->c2 as $player) {
+        foreach ($fight->c2 as $player) { // Вывод игроков из состояния "в бою"
             $fight->c2[$i]->in_fight=0;
             $i++;
         }
+        // Удаляем запись о данном бое из БД
         $query="DELETE FROM attacks WHERE attacker_id=$fight->attacker_id and defender_id=$fight->defender_id and resolved=$fight->resolved and declared=$fight->declared";
         if ($this->config["debug"]) {
             echo $query;
@@ -354,13 +355,13 @@ class Server
 
 class Fight
 {
-    public $attacker_id;
-    public $defender_id;
-    public $declared;
-    public $resolved;
-    public $in_progress;
-    public $c1=array();
-    public $c2=array();
+    public $attacker_id; // id атакующего клана
+    public $defender_id; // id защищающегося клана
+    public $declared; // время, когда был объявлен бой
+    public $resolved; // вермя, когда состаится бой
+    public $in_progress; // флаг, активен ли бой
+    public $c1=array(); // массив атакующих игроков
+    public $c2=array(); // массив защищающихся игроков
 
     public function __construct($a, $d, $de, $r, $i, $c1, $c2)
     {
@@ -373,10 +374,11 @@ class Fight
         $this->c2=$c2;
     }
 
-    public function StartFight($Server)
+    public function StartFight($Server) // Функция старта боя
     {
         $i=0;
         $this->c1=array();
+        // Выбираем атакующих игроков
         foreach ($Server->Clans[$this->attacker_id]->players as $player) {
             if ((rand(1, $this->config["player_add"])==1)&&($player->in_fight!=1)) {
                 array_push($this->c1, null);
@@ -387,6 +389,7 @@ class Fight
         }
         $i=0;
         $this->c2=array();
+        // Выбираем защищающихся игроков
         foreach ($Server->Clans[$this->defender_id]->players as $player) {
             if ((rand(1, $this->config["player_add"])==1)&&($player->in_fight!=1)) {
                 array_push($this->c2, null);
@@ -395,16 +398,16 @@ class Fight
             }
             $i++;
         }
-        $this->in_progress=1;
+        $this->in_progress=1; // Отмечаем, что бой начался
     }
 
-    public function Move($Server)
+    public function Move($Server) // Функция "хода" (совершение убийства)
     {
-        for ($i=0;$i<rand(1, $Server->config["max_move"]);$i++) {
+        for ($i=0;$i<rand(1, $Server->config["max_move"]);$i++) { // Выбираем, сколько потенциальныз убийст может произайти
             if ((rand(1, $Server->config["kill_chance"]) ==1)&&($this->c1 && $this->c2)) {
-                if (rand(0, 1)==1) {
-                    $killer=array_rand($this->c1);
-                    $dead=array_rand($this->c2);
+                if (rand(0, 1)==1) { // Убица из первого клаан
+                    $killer=array_rand($this->c1); // выбираем убийцу
+                    $dead=array_rand($this->c2); // выбираем убитого
                     $this->c1[$killer]->frags++;
                     $this->c2[$dead]->deaths++;
                     $this->c2[$dead]->in_fight=0;
@@ -412,9 +415,9 @@ class Fight
                     $Server->Log($event);
                     unset($this->c2[$dead]);
                     sort($this->c2);
-                } else {
-                    $killer=array_rand($this->c2);
-                    $dead=array_rand($this->c1);
+                } else { // иначе из второго
+                    $killer=array_rand($this->c2); // выбираем убийцу
+                    $dead=array_rand($this->c1); // выбираем убитого
                     $this->c2[$killer]->frags++;
                     $this->c1[$dead]->deaths++;
                     $this->c1[$dead]->in_fight=0;
@@ -430,9 +433,9 @@ class Fight
 
 class Clan
 {
-    public $id;
-    public $name;
-    public $players=array();
+    public $id; // id клана
+    public $name; // имя клана
+    public $players=array(); // массив игроков состаящих в клане
 
     public function __construct($i, $n)
     {
@@ -443,13 +446,13 @@ class Clan
 
 class Player
 {
-    public $id;
-    public $nick;
-    public $frags;
-    public $deaths;
-    public $level;
-    public $clan_id;
-    public $in_fight;
+    public $id; // id игрока
+    public $nick; // ник игрока
+    public $frags; // количество его фрагов
+    public $deaths; // количество его смертей
+    public $level; // его уровень (пока не используется)
+    public $clan_id; // id клана, в котором состоит игрок
+    public $in_fight; // флаг, находится ли игрок в бою (если да, то он не может попасть в другой бой)
 
     public function __construct($i, $n, $f, $d, $l, $c, $fgt)
     {
@@ -465,18 +468,18 @@ class Player
 
 class Time
 {
-    public $saved_time;
+    public $saved_time; // сохраненное время
 
-    public function __construct()
+    public function __construct() // при создании объекта, запоминаем время, когда он был создан
     {
         $this->saved_time=time();
     }
-    public function Update()
+    public function Update() // установить сохраненное время на  текущий момент
     {
         $this->saved_time=time();
         return $this->saved_time;
     }
-    public function DeltaTime()
+    public function DeltaTime() // вернуть разницу между текущим времинем и сохраненным (в юникс секундах)
     {
         return time()-$this->saved_time;
     }

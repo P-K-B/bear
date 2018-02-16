@@ -7,7 +7,7 @@
     $Time=new Time();
     $was=0;
     while (1) {
-        if ($Time->DeltaTime()>=$Server->AddTime()) {
+        if ($Time->DeltaTime()>=$Server->config["add_time"]) {
             if ($was!=1) {
                 echo "here1\n";
                 $Server->NewFight();
