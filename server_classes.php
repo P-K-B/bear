@@ -111,7 +111,7 @@ class Server
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
-        $query = "CREATE TABLE IF NOT EXISTS log (
+        $query = "CREATE TABLE IF NOT EXISTS logs (
                   timemark int,
     						  eventt NVARCHAR(128))";
         $result = $this->connection->query($query);
@@ -318,7 +318,7 @@ class Server
     }
     public function Log($event) // Функция записи сбытия в log БД
     {
-        $query="INSERT INTO log (timemark,eventt) VALUES(".time().",\"$event\")";
+        $query="INSERT INTO logs (timemark,eventt) VALUES(".time().",\"$event\")";
         if ($this->config["debug"]) {
             echo $query;
         }
