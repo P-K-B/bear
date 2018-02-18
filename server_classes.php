@@ -113,7 +113,9 @@ class Server
         }
         $query = "CREATE TABLE IF NOT EXISTS logs (
                   timemark int,
-    						  eventt NVARCHAR(128))";
+    						  textt NVARCHAR(128),
+                  eventt NVARCHAR(128),
+                  fight NVARCHAR(128))";
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -257,15 +259,14 @@ class Server
             $c2=$this->MakeList($tab->c2);
             $data = $this->connection->query("SELECT * FROM attacks WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared");
             if ($data->num_rows > 0) {
-                $query="UPDATE attacks SET c1=$c1, c2=$c2 WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
                 if ($c1 && !$c2) {
-                    $query="UPDATE attacks SET c1=\"$c1\", c2=NULL WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
+                    $query="UPDATE attacks SET c1=\"$c1\", c2=NULL, in_progress=$tab->in_progress WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
                 }
                 if (!$c1 && $c2) {
-                    $query="UPDATE attacks SET c1=NULL, c2=\"$c2\" WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
+                    $query="UPDATE attacks SET c1=NULL, c2=\"$c2\", in_progress=$tab->in_progress WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
                 }
                 if ($c1 &&  $c2) {
-                    $query="UPDATE attacks SET c1=\"$c1\", c2=\"$c2\" WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
+                    $query="UPDATE attacks SET c1=\"$c1\", c2=\"$c2\", in_progress=$tab->in_progress WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
                 }
                 if (!$c1 &&  !$c2) {
                     goto abc;
@@ -316,9 +317,15 @@ class Server
         }
         return $res;
     }
-    public function Log($event) // Функция записи сбытия в log БД
+    public function Log($text,$event,$fight) // Функция записи сбытия в log БД
     {
-        $query="INSERT INTO logs (timemark,eventt) VALUES(".time().",\"$event\")";
+        if (strpos($text,"Fight ended")!== false){
+          $time=time()+1;
+        }
+        else{
+          $time=time();
+        }
+        $query="INSERT INTO logs (timemark,textt,eventt,fight) VALUES($time,\"$text\",\"$event\",\"$fight\")";
         if ($this->config["debug"]) {
             echo $query;
         }
@@ -329,6 +336,12 @@ class Server
     }
     public function EndFight($fight, $pos) // Функция завершения боя
     {
+        if (count($fight->c1) == 0) {
+            $text="Fight ended. Caln $fight->attacker_id won.";
+        }
+        elseif (count($fight->c2) == 0) {
+            $text="Fight ended. Clan $fight->defender_id won.";
+        }
         $i=0;
         foreach ($fight->c1 as $player) { // Вывод игроков из состояния "в бою"
             $fight->c1[$i]->in_fight=0;
@@ -348,6 +361,9 @@ class Server
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
+        $event="{$this->Fights[$pos]->attacker_id} VS {$this->Fights[$pos]->defender_id} at {$this->Fights[$pos]->resolved}";
+        $fight="{$this->Fights[$pos]->attacker_id},{$this->Fights[$pos]->defender_id},{$this->Fights[$pos]->declared},{$this->Fights[$pos]->resolved}";
+        $this->Log($text,$event,$fight);
         unset($this->Fights[$pos]);
         sort($this->Fights);
     }
@@ -379,10 +395,10 @@ class Fight
         $i=0;
         $this->c1=array();
         // Выбираем атакующих игроков
-        foreach ($Server->Clans[$this->attacker_id]->players as $player) {
+        foreach ($Server->Clans[$this->attacker_id-1]->players as $player) {
             if ((rand(1, $this->config["player_add"])==1)&&($player->in_fight!=1)) {
                 array_push($this->c1, null);
-                $this->c1[count($this->c1)-1]=&$Server->Clans[$this->attacker_id]->players[$i];
+                $this->c1[count($this->c1)-1]=&$Server->Clans[$this->attacker_id-1]->players[$i];
                 $this->c1[count($this->c1)-1]->in_fight=1;
             }
             $i++;
@@ -390,15 +406,19 @@ class Fight
         $i=0;
         $this->c2=array();
         // Выбираем защищающихся игроков
-        foreach ($Server->Clans[$this->defender_id]->players as $player) {
+        foreach ($Server->Clans[$this->defender_id-1]->players as $player) {
             if ((rand(1, $this->config["player_add"])==1)&&($player->in_fight!=1)) {
                 array_push($this->c2, null);
-                $this->c2[count($this->c2)-1]=&$Server->Clans[$this->defender_id]->players[$i];
+                $this->c2[count($this->c2)-1]=&$Server->Clans[$this->defender_id-1]->players[$i];
                 $this->c2[count($this->c2)-1]->in_fight=1;
             }
             $i++;
         }
         $this->in_progress=1; // Отмечаем, что бой начался
+        $text="Fight started";
+        $event="$this->attacker_id VS $this->defender_id at $this->resolved";
+        $fight="$this->attacker_id,$this->defender_id,$this->declared,$this->resolved";
+        $Server->Log($text,$event,$fight);
     }
 
     public function Move($Server) // Функция "хода" (совершение убийства)
@@ -411,8 +431,10 @@ class Fight
                     $this->c1[$killer]->frags++;
                     $this->c2[$dead]->deaths++;
                     $this->c2[$dead]->in_fight=0;
-                    $event="{$this->c1[$killer]->nick} (id = {$this->c1[$killer]->id}, clan = {$this->c1[$killer]->clan_id}) killed {$this->c2[$dead]->nick} (id = {$this->c2[$dead]->id}, clan = {$this->c2[$dead]->clan_id})";
-                    $Server->Log($event);
+                    $text="{$this->c1[$killer]->nick} (id = {$this->c1[$killer]->id}, clan = {$this->c1[$killer]->clan_id}) killed {$this->c2[$dead]->nick} (id = {$this->c2[$dead]->id}, clan = {$this->c2[$dead]->clan_id})";
+                    $event="$this->attacker_id VS $this->defender_id at $this->resolved";
+                    $fight="$this->attacker_id,$this->defender_id,$this->declared,$this->resolved";
+                    $Server->Log($text,$event,$fight);
                     unset($this->c2[$dead]);
                     sort($this->c2);
                 } else { // иначе из второго
@@ -421,8 +443,10 @@ class Fight
                     $this->c2[$killer]->frags++;
                     $this->c1[$dead]->deaths++;
                     $this->c1[$dead]->in_fight=0;
-                    $event="{$this->c2[$killer]->nick} (id = {$this->c2[$killer]->id}, clan = {$this->c2[$killer]->clan_id}) killed {$this->c1[$dead]->nick} (id = {$this->c1[$dead]->id}, clan = {$this->c1[$dead]->clan_id})";
-                    $Server->Log($event);
+                    $text="{$this->c2[$killer]->nick} (id = {$this->c2[$killer]->id}, clan = {$this->c2[$killer]->clan_id}) killed {$this->c1[$dead]->nick} (id = {$this->c1[$dead]->id}, clan = {$this->c1[$dead]->clan_id})";
+                    $event="$this->attacker_id VS $this->defender_id at $this->resolved";
+                    $fight="$this->attacker_id,$this->defender_id,$this->declared,$this->resolved";
+                    $Server->Log($text,$event,$fight);
                     unset($this->c1[$dead]);
                     sort($this->c1);
                 }
