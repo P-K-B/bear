@@ -1,5 +1,2 @@
 <?php
-$a=array();
-if ($a) echo "is\n";
-
-?>
+echo rand(1,100);
