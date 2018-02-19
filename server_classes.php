@@ -5,26 +5,6 @@
 // TODO: Написать коментарии!!!
 // TODO: (когданибудь) Наверое, было бы правильно, избавиться от public...
 
-<<<<<<< HEAD
-class Server{
-    public $Fights;
-    public $Time;
-    public $Clans=array();
-    public $connection;
-    public $debug;
-    public $fight_rand;
-    public $min_add;
-    public $max_add;
-    public $add_time;
-
-
-    private $sleep_time;
-    private $hostname;
-    private $username;
-    private $password;
-    private $database;
-    private $port;
-=======
 class Server
 {
     public $Fights; // Массив содержит информацию по боям ан сервере
@@ -33,7 +13,6 @@ class Server
     public $connection; // Объект, отвечающий за подключение к БД
 
     public $config; // Объект, содержащий информацию о пользовательских настройках (подробнее в файле config.json)
->>>>>>> kirill
 
     public function Sleepp() // Перевести сервер в спящий режим на вермя (время берется из config)
     {
@@ -48,35 +27,11 @@ class Server
         $this->Connect();
         $this->Check_server();
         $this->Restore();
-<<<<<<< HEAD
-        if ($this->Clans==NULL){
-          echo "creating new clans";
-=======
         if ($this->Clans==null) {
->>>>>>> kirill
             $this->NewClans();
         }
     }
 
-<<<<<<< HEAD
-    function getSleepTime(){
-      return $this->sleep_time;
-    }
-    function NewFight(){
-      echo "here11\n";
-        if ($this->Clans){
-          echo "here10\n";
-          echo $this->fight_rand;
-            if (rand(0,$this->fight_rand) == 1){
-              echo "here100\n";
-                $rand1=rand(0,count($this->Clans)-1);
-                echo "here30\n";
-                rerand:
-                $rand2=rand(0,count($this->Clans)-1);
-                echo count($this->Clans)-1;
-                echo "here40\n";
-                if ($rand1==$rand2){
-=======
     public function NewFight() // Функция создание нового боя
     {
         if ($this->Clans) { // Если на сервере нет кланов, то некому сражаться
@@ -85,7 +40,6 @@ class Server
                 rerand:
                 $rand2=array_rand($this->Clans); // Сулчайно выбираем защищающегося
                 if ($rand1==$rand2) { // Атакующий не может быть защищающимся
->>>>>>> kirill
                     goto rerand;
                 }
                 $add=rand($this->config["min_add"], $this->config["max_add"]); // Определяем кокга состаится бой
@@ -98,27 +52,6 @@ class Server
         }
     }
 
-<<<<<<< HEAD
-    function Connect(){
-        $this->connection = new mysqli($this->hostname.$this->port, $this->username, $this->password);
-      	if ($this->connection->connect_errno) die("Unable to connect to MySQL server:".$this->connection->connect_errno.$this->connection->connect_error);
-      	$this->connection->query("SET NAMES 'utf8'");
-        if ($this->connection && $this->debug) echo ("done Set names.\n");
-      	$this->connection->query("SET CHARACTER SET 'utf8'");
-        if ($this->connection && $this->debug) echo ("done Set character set.\n");
-      	$this->connection->query("SET SESSION collation_connection = 'utf8_general_ci'");
-        if ($this->connection && $this->debug) echo ("done SET SESSION.\n");
-    }
-
-    function Check_server() {
-
-        $query = "CREATE DATABASE IF NOT EXISTS $this->database";
-        $result = $this->connection->query($query);
-        if (!$result) die("Error during creating table in Check_server".$this->connection->connect_errno.$this->connection->connect_error);
-        $query = "USE $this->database";
-        $result = $this->connection->query($query);
-        if (!$result) die("Error during creating table in Check_server".$this->connection->connect_errno.$this->connection->connect_error);
-=======
     public function Connect() // Функция подключения к БД
     {
         $this->connection = new mysqli($this->config["hostname"].$this->config["port"], $this->config["username"], $this->config["password"]);
@@ -146,7 +79,6 @@ class Server
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
->>>>>>> kirill
         $query = "CREATE TABLE IF NOT EXISTS attacks (
                   timemark int,
     						  attacker_id NVARCHAR(128),
@@ -156,16 +88,6 @@ class Server
                   in_progress int,
     						  c1 NVARCHAR(128),
     						  c2 NVARCHAR(128))";
-<<<<<<< HEAD
-    	  $result = $this->connection->query($query);
-    	  if (!$result) die("Error during creating table in Check_server".$this->connection->connect_errno.$this->connection->connect_error);
-    	  $query = "CREATE TABLE IF NOT EXISTS clans (
-    						  id smallint(5) unsigned NOT NULL,
-    						  title varchar(128) DEFAULT NULL)";
-        $result = $this->connection->query($query);
-    	  if (!$result) die("Error during creating table in Check_server".$this->connection->connect_errno.$this->connection->connect_error);
-    	  $query = "CREATE TABLE IF NOT EXISTS players (
-=======
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -178,7 +100,6 @@ class Server
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
         $query = "CREATE TABLE IF NOT EXISTS players (
->>>>>>> kirill
     						  id INT UNSIGNED NOT NULL UNIQUE,
     						  nick NVARCHAR(128),
     						  level SMALLINT UNSIGNED NOT NULL,
@@ -187,9 +108,6 @@ class Server
     						  clan_id INT UNSIGNED NOT NULL,
                   in_fight int)";
         $result = $this->connection->query($query);
-<<<<<<< HEAD
-        if (!$result) die("Error during creating table in Check_server".$this->connection->connect_errno.$this->connection->connect_error);
-=======
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
@@ -202,7 +120,6 @@ class Server
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
->>>>>>> kirill
     }
 
     public function NewClans() // Функция создания новых кланов (если создаем новый сервер и новые БД соответственно)
@@ -226,17 +143,10 @@ class Server
             }
         }
         $unc = array();
-<<<<<<< HEAD
-        foreach ($dt as $i) {
-          if ($i != NULL) {
-              $unc[] = $i;
-          }
-=======
         for ($i = 0; $i < count($dt); $i++) {
             if ($dt[$i] != null) {
                 $unc[] = $dt[$i];
             }
->>>>>>> kirill
         }
         $c = 0;
         $Clans=array();
@@ -244,14 +154,8 @@ class Server
         for ($i = 1; $i <= 10; $i++) {
             $tmp=new Clan($i, "clan$i");
             for ($k = 0; $k < 29; $k++) {
-<<<<<<< HEAD
-                $pl=new Player($c,$unc[$c],0,0,0,$i,0);
-                $tmp->addPlayer($pl);
-                // array_push($tmp->players,$pl);
-=======
                 $pl=new Player($c, $unc[$c], 0, 0, 0, $i, 0);
                 array_push($tmp->players, $pl);
->>>>>>> kirill
                 $c++;
             }
             array_push($Clans, $tmp);
@@ -272,14 +176,8 @@ class Server
             $pl=new Player($row['id'], $row['nick'], $row['frags'], $row['deaths'], $row['level'], $row['clan_id'], $row['in_fight']);
             $i=0;
             foreach ($Clans as $clan) {
-<<<<<<< HEAD
-                if ($clan->id==$pl->clan_id){
-                  $Clans[$i]->addPlayer($pl);
-                  // array_push($Clans[$i]->players,$pl);
-=======
                 if ($clan->id==$pl->clan_id) {
                     array_push($Clans[$i]->players, $pl);
->>>>>>> kirill
                 }
                 $i++;
             }
@@ -319,44 +217,6 @@ class Server
         return $ret;
     }
 
-<<<<<<< HEAD
-    function Backup(){
-        foreach ($this->Clans as $clan){
-            $id=$clan->id;
-            $name=$clan->name;
-            $data = $this->connection->query( "SELECT * FROM clans WHERE id=$id");
-            if ($data->num_rows){
-                $query="UPDATE clans SET title=\"$name\" WHERE id=$id";
-                $result = $this->connection->query($query);
-                if (!$result) die("Error during creating table in Backup 1".$this->connection->connect_errno.$this->connection->connect_error);
-            }
-            else{
-              $query="INSERT INTO clans (id,title) VALUES ($id,\"$name\")";
-              echo $query;
-              $result = $this->connection->query($query);
-              if (!$result) die("Error during creating table in Backup 2".$this->connection->connect_errno.$this->connection->connect_error);
-            }
-            foreach ($clan->players as $player){
-              $nick = $player->nick;
-              $frags = $player->frags;
-              $deaths =$player->deaths;
-              $level=$player->level;
-              $clan_id=$player->clan_id;
-              $in_fight=$player->in_fight;
-              $id=$player->id;
-                $data = $this->connection->query( "SELECT * FROM players WHERE id=$id");
-                if ($data->num_rows){
-                    $query="UPDATE players SET nick=\"$nick\",frags=$frags,deaths=$deaths,level=$level,clan_id=$clan_id,in_fight=$in_fight WHERE id=$id";
-                    $result = $this->connection->query($query);
-                    if (!$result) die("Error during creating table in Backup 3".$this->connection->connect_errno.$this->connection->connect_error);
-                }
-                else{
-                  $query="INSERT INTO players (nick,frags,deaths,level,clan_id,id,in_fight) VALUES (\"$nick\",$frags,$deaths,$level,$clan_id,$id,$in_fight)";
-                  if ($this->debug) echo $query;
-                  $result = $this->connection->query($query);
-                  echo "$result\n";
-                  if (!$result) die("Error during creating table in Backup 4".$this->connection->connect_errno.$this->connection->connect_error);
-=======
     public function Backup() // Функция резервного копирования текущего состаяния сервера в БД (для работы функции Restore)
     {
         foreach ($this->Clans as $clan) {
@@ -391,23 +251,12 @@ class Server
                     if (!$result) {
                         die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
                     }
->>>>>>> kirill
                 }
             }
         }
         foreach ($this->Fights as $tab) {
             $c1=$this->MakeList($tab->c1);
             $c2=$this->MakeList($tab->c2);
-<<<<<<< HEAD
-            $data = $this->connection->query( "SELECT * FROM attacks WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared");
-            if ($data->num_rows){
-                $query="UPDATE attacks SET c1=$c1, c2=$c2 WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
-                if ($c1 && !$c2) $query="UPDATE attacks SET c1=\"$c1\", c2=NULL WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
-                if (!$c1 && $c2) $query="UPDATE attacks SET c1=NULL, c2=\"$c2\" WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
-                if ($c1 &&  $c2) $query="UPDATE attacks SET c1=\"$c1\", c2=\"$c2\" WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared";
-                if (!$c1 &&  !$c2) goto abc;
-                if ($this->debug) echo $query;
-=======
             $data = $this->connection->query("SELECT * FROM attacks WHERE attacker_id=$tab->attacker_id and defender_id=$tab->defender_id and resolved=$tab->resolved and declared=$tab->declared");
             if ($data->num_rows > 0) {
                 if ($c1 && !$c2) {
@@ -425,7 +274,6 @@ class Server
                 if ($this->config["debug"]) {
                     echo $query;
                 }
->>>>>>> kirill
                 $result = $this->connection->query($query);
                 if (!$result) {
                     die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -546,24 +394,6 @@ class Fight
     {
         $i=0;
         $this->c1=array();
-<<<<<<< HEAD
-        foreach ($Server->Clans[$this->attacker_id]->players as $player) {
-            if ((rand(0,3)==0)&&(!$player->in_fight)){
-                array_push($this->c1,NULL);
-                $this->c1[count($this->c1)-1]=&$Server->Clans[$this->attacker_id]->players[$i];
-                $this->c1[count($this->c1)-1]->$in_fight=1;
-            }
-            $i++;
-        }
-        echo "\n";
-        $i=0;
-        $this->c2=array();
-        foreach ($Server->Clans[$this->defender_id]->players as $player) {
-            if ((rand(0,3)==0)&&(!$player->in_fight)){
-              array_push($this->c2,NULL);
-              $this->c2[count($this->c2)-1]=&$Server->Clans[$this->defender_id]->players[$i];
-              $this->c2[count($this->c2)-1]->$in_fight=1;
-=======
         // Выбираем атакующих игроков
         foreach ($Server->Clans[$this->attacker_id-1]->players as $player) {
             if ((rand(1, $this->config["player_add"])==1)&&($player->in_fight!=1)) {
@@ -581,7 +411,6 @@ class Fight
                 array_push($this->c2, null);
                 $this->c2[count($this->c2)-1]=&$Server->Clans[$this->defender_id-1]->players[$i];
                 $this->c2[count($this->c2)-1]->in_fight=1;
->>>>>>> kirill
             }
             $i++;
         }
@@ -637,38 +466,8 @@ class Clan
         $this->id=$i;
         $this->name=$n;
     }
+}
 
-<<<<<<< HEAD
-    function removePlayer($id){
-      $key = array_search($id,$this->players);
-
-      if($key){
-        unset($this->players[$key]);
-        sort($this->players);
-        return 0;
-      }
-      else return -1;
-
-    }
-    function addPlayer($id){
-      $key = array_search($id,$this->players);
-      if($key) return -1;
-      else {
-        array_push($this->players, $id);
-        sort($this->players);
-        return 0;
-      }
-    }
- }
-class Player{
-    public $id;
-    public $nick;
-    public $frags;
-    public $deaths;
-    public $level;
-    public $clan_id;
-    public $in_fight;
-=======
 class Player
 {
     public $id; // id игрока
@@ -678,7 +477,6 @@ class Player
     public $level; // его уровень (пока не используется)
     public $clan_id; // id клана, в котором состоит игрок
     public $in_fight; // флаг, находится ли игрок в бою (если да, то он не может попасть в другой бой)
->>>>>>> kirill
 
     public function __construct($i, $n, $f, $d, $l, $c, $fgt)
     {
@@ -690,27 +488,11 @@ class Player
         $this->clan_id=$c;
         $this->in_fight=$fgt;
     }
-
-    function Killed(){
-      $this->frags++;
-    }
-    function Dead(){
-      $this->in_fight=0;
-      $this->deaths++;
-    }
-    function LevelUp(){
-      $this->level++;
-    }
 }
 
-<<<<<<< HEAD
-class Time{
-    private $saved_time;
-=======
 class Time
 {
     public $saved_time; // сохраненное время
->>>>>>> kirill
 
     public function __construct() // при создании объекта, запоминаем время, когда он был создан
     {
@@ -726,7 +508,3 @@ class Time
         return time()-$this->saved_time;
     }
 }
-<<<<<<< HEAD
-?>
-=======
->>>>>>> kirill
