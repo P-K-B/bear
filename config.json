@@ -11,8 +11,5 @@
   "sleep_time": 5,
   "max_move": 3,
   "kill_chance": 2,
-  "player_add": 3,
-  "clans_array_page": "https://berserktcg.ru/api/export/clans.json",
-  "attacks_page" : "https://berserktcg.ru/api/export/attacks.json",
-  "clan_page": "https://berserktcg.ru/api/export/clan/171.json"
+  "player_add": 3
 }
