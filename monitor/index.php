@@ -82,7 +82,6 @@ $( document ).ready( function()
 
 </script>
 </head>
-<meta http-equiv="refresh" content="300">
     <body>
 
         <form name='Form'>
