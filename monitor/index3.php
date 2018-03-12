@@ -1,3 +1,7 @@
+
+
+
+
 <html>
 <head>
 <link type="text/css" rel="stylesheet" href="css/style.css">
@@ -84,17 +88,12 @@ $( document ).ready( function()
     <body>
 
         <form name='Form'>
+            Max Rows: <input type='text' id='show' value="20" /> <br />
             Update Time: <input type='text' id='time' value="1" /> <br />
         </form>
 
         <script language="javascript" type="text/javascript">
-        var $_GET = {};
-        document.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function () {
-            function decode(s) {
-                return decodeURIComponent(s.split("+").join(" "));
-            }
-            $_GET[decode(arguments[1])] = decode(arguments[2]);
-        });
+
             //Browser Support Code
             var update_loop;
             function ShowFunction() {
@@ -103,43 +102,11 @@ $( document ).ready( function()
               // console.log(time);
               update_loop = setInterval(ShowFunction, time);
 
-              var Request; // The variable that makes Ajax possible!
-                try {
-                    // Opera 8.0+, Firefox, Safari
-                    Request = new XMLHttpRequest();
-                } catch (e) {
-                    // Internet Explorer Browsers
-                    try {
-                        Request = new ActiveXObject("Msxml2.XMLHTTP");
-                    } catch (e) {
-                        try {
-                            Request = new ActiveXObject("Microsoft.XMLHTTP");
-                        } catch (e) {
-                            // Something went wrong
-                            alert("Your browser broke!");
-                            return false;
-                        }
-                    }
-              }
-              // Create a function that will receive data
-              // sent from the server and will update
-              // div section in the same page.
-              Request.onreadystatechange = function() {
-                  if (Request.readyState == 4) {
-                      var ajaxDisplay = document.getElementById('ajaxDiv');
-                      ajaxDisplay.innerHTML = Request.responseText;
-                  }
-              }
-              // Now get the value from user and pass it to
-              // server script.
-              var queryString = "?fight=" + $_GET['fight'];
-              Request.open("GET", "fight.php" + queryString, true);
-              Request.send(null);
-          }
+
+            }
             ShowFunction();
         </script>
         <div id='ajaxDiv'></div>
-        <input type="button" value="Back" onclick="window.location.href='../monitor/index.php'">
-
     </body>
 </html>
+<?php  echo "test!" ?>

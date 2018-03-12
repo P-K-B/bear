@@ -16,20 +16,25 @@ class Server
 
     public function Sleepp() // Перевести сервер в спящий режим на вермя (время берется из config)
     {
-        sleep($this->config["sleep_time"]);
+        sleep($this->config["server_sleep_time"]);
     }
 
     public function __construct()
     {
-        $file  = file_get_contents("config.json");
-        $this->config = json_decode($file, true);
-
+        $this->UpdateConfig();
         $this->Connect();
         $this->Check_server();
         $this->Restore();
         if ($this->Clans==null) {
             $this->NewClans();
         }
+    }
+
+    public function UpdateConfig()
+    {
+        $file  = file_get_contents(realpath(dirname(__FILE__))."/../config.json");
+        $this->config = json_decode($file, true);
+        print_r($this->config);
     }
 
     public function NewFight() // Функция создание нового боя
@@ -113,7 +118,8 @@ class Server
         }
         $query = "CREATE TABLE IF NOT EXISTS logs (
                   timemark int,
-    						  textt NVARCHAR(128),
+    						  text1 NVARCHAR(128),
+                  text2 NVARCHAR(128),
                   eventt NVARCHAR(128),
                   fight NVARCHAR(128))";
         $result = $this->connection->query($query);
@@ -161,6 +167,16 @@ class Server
             array_push($Clans, $tmp);
         }
         $this->Clans=$Clans;
+    }
+
+    public function FindClan($id)
+    {
+        foreach ($this->Clans as $clan) {
+            if ($clan->id == $id) {
+                return $clan->name;
+            }
+        }
+        return null;
     }
 
     public function Restore() // Функция востановления сервера через БД. Если БД пустая (или новая) то ничего не проихайдет
@@ -317,15 +333,14 @@ class Server
         }
         return $res;
     }
-    public function Log($text,$event,$fight) // Функция записи сбытия в log БД
+    public function Log($text1, $text2, $event, $fight) // Функция записи сбытия в log БД
     {
-        if (strpos($text,"Fight ended")!== false){
-          $time=time()+1;
+        if (strpos($text1, "Fight ended")!== false) {
+            $time=time()+1;
+        } else {
+            $time=time();
         }
-        else{
-          $time=time();
-        }
-        $query="INSERT INTO logs (timemark,textt,eventt,fight) VALUES($time,\"$text\",\"$event\",\"$fight\")";
+        $query="INSERT INTO logs (timemark,text1,text2,eventt,fight) VALUES($time,\"$text1\",\"$text2\",\"$event\",\"$fight\")";
         if ($this->config["debug"]) {
             echo $query;
         }
@@ -334,12 +349,11 @@ class Server
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
     }
-    public function EndFight($fight, $pos) // Функция завершения боя
+    public function EndFight($fight) // Функция завершения боя
     {
         if (count($fight->c1) == 0) {
             $text="Fight ended. Caln $fight->attacker_id won.";
-        }
-        elseif (count($fight->c2) == 0) {
+        } elseif (count($fight->c2) == 0) {
             $text="Fight ended. Clan $fight->defender_id won.";
         }
         $i=0;
@@ -361,11 +375,21 @@ class Server
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
-        $event="{$this->Fights[$pos]->attacker_id} VS {$this->Fights[$pos]->defender_id} at {$this->Fights[$pos]->resolved}";
-        $fight="{$this->Fights[$pos]->attacker_id},{$this->Fights[$pos]->defender_id},{$this->Fights[$pos]->declared},{$this->Fights[$pos]->resolved}";
-        $this->Log($text,$event,$fight);
-        unset($this->Fights[$pos]);
-        sort($this->Fights);
+        $event="{$fight->attacker_id} VS {$fight->defender_id} at {$fight->resolved}";
+        $fight="{$fight->attacker_id},{$fight->defender_id},{$fight->declared},{$fight->resolved}";
+        $this->Log($text, null, $event, $fight);
+    }
+
+    public function Check_Players()
+    {
+        foreach ($this->Clans as $clan) {
+            foreach ($clan->players as $player) {
+                if ($player->in_fight != 0) {
+                    return 1;
+                }
+            }
+        }
+        return 0;
     }
 }
 
@@ -418,7 +442,7 @@ class Fight
         $text="Fight started";
         $event="$this->attacker_id VS $this->defender_id at $this->resolved";
         $fight="$this->attacker_id,$this->defender_id,$this->declared,$this->resolved";
-        $Server->Log($text,$event,$fight);
+        $Server->Log($text, null, $event, $fight);
     }
 
     public function Move($Server) // Функция "хода" (совершение убийства)
@@ -431,10 +455,11 @@ class Fight
                     $this->c1[$killer]->frags++;
                     $this->c2[$dead]->deaths++;
                     $this->c2[$dead]->in_fight=0;
-                    $text="{$this->c1[$killer]->nick} (id = {$this->c1[$killer]->id}, clan = {$this->c1[$killer]->clan_id}) killed {$this->c2[$dead]->nick} (id = {$this->c2[$dead]->id}, clan = {$this->c2[$dead]->clan_id})";
+                    $text1="{$this->c1[$killer]->nick};{$this->c1[$killer]->id};{$this->c1[$killer]->level};{$this->c1[$killer]->frags};{$this->c1[$killer]->deaths};{$Server->FindClan($this->c1[$killer]->clan_id)}";
+                    $text2="{$this->c2[$dead]->nick};{$this->c2[$dead]->id};{$this->c2[$dead]->level};{$this->c2[$dead]->frags};{$this->c2[$dead]->deaths};{$Server->FindClan($this->c2[$dead]->clan_id)}";
                     $event="$this->attacker_id VS $this->defender_id at $this->resolved";
                     $fight="$this->attacker_id,$this->defender_id,$this->declared,$this->resolved";
-                    $Server->Log($text,$event,$fight);
+                    $Server->Log($text1, $text2, $event, $fight);
                     unset($this->c2[$dead]);
                     sort($this->c2);
                 } else { // иначе из второго
@@ -443,10 +468,11 @@ class Fight
                     $this->c2[$killer]->frags++;
                     $this->c1[$dead]->deaths++;
                     $this->c1[$dead]->in_fight=0;
-                    $text="{$this->c2[$killer]->nick} (id = {$this->c2[$killer]->id}, clan = {$this->c2[$killer]->clan_id}) killed {$this->c1[$dead]->nick} (id = {$this->c1[$dead]->id}, clan = {$this->c1[$dead]->clan_id})";
+                    $text1="{$this->c2[$killer]->nick};{$this->c2[$killer]->id};{$this->c2[$killer]->level};{$this->c2[$killer]->frags};{$this->c2[$killer]->deaths};{$Server->FindClan($this->c2[$killer]->clan_id)}";
+                    $text2="{$this->c1[$dead]->nick};{$this->c1[$dead]->id};{$this->c1[$dead]->level};{$this->c1[$dead]->frags};{$this->c1[$dead]->deaths};{$Server->FindClan($this->c1[$dead]->clan_id)}";
                     $event="$this->attacker_id VS $this->defender_id at $this->resolved";
                     $fight="$this->attacker_id,$this->defender_id,$this->declared,$this->resolved";
-                    $Server->Log($text,$event,$fight);
+                    $Server->Log($text1, $text2, $event, $fight);
                     unset($this->c1[$dead]);
                     sort($this->c1);
                 }

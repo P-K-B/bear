@@ -1,15 +1,20 @@
 {
   "debug": 1,
-  "fight_rand": 1,
+  "fight_rand": 5,
   "min_add": 10,
   "max_add": 11,
+  "database": "server2",
   "hostname": "localhost",
   "username": "root",
   "password": "root",
-  "database": "server2",
   "port": ":8889",
-  "sleep_time": 5,
+  "server_sleep_time": 1,
   "max_move": 3,
-  "kill_chance": 2,
-  "player_add": 3
+  "kill_chance": 1,
+  "max_fights_at_a_time": 1,
+  "player_add": 5,
+  "clans_url": "https://berserktcg.ru/api/export/clans",
+  "clan_data_url": "https://berserktcg.ru/api/export/clan/",
+  "attacks_url": "https://berserktcg.ru/api/export/attacks",
+  "source": 1
 }

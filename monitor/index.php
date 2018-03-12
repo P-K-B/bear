@@ -90,10 +90,15 @@ $( document ).ready( function()
         </form>
 
         <script language="javascript" type="text/javascript">
-            var time = document.getElementById('time').value * 1000;
-            var update_loop = setInterval(ShowFunction, time);
+
             //Browser Support Code
+            var update_loop;
             function ShowFunction() {
+              clearInterval(update_loop);
+              var time = document.getElementById('time').value * 1000;
+              // console.log(time);
+              update_loop = setInterval(ShowFunction, time);
+
                 var Request; // The variable that makes Ajax possible!
                   try {
                       // Opera 8.0+, Firefox, Safari
@@ -127,6 +132,7 @@ $( document ).ready( function()
                 var queryString = "?show=" + show;
                 Request.open("GET", "main.php" + queryString, true);
                 Request.send(null);
+                // Sleep(document.getElementById('time').value)
             }
             ShowFunction();
         </script>
