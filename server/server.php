@@ -2,6 +2,7 @@
 
     define('_JEXEC', 1);
     require_once('server_classes.php');
+    require_once("data.php");
     // 1 создаем подключение к бд
     $Server=new Server();
     $Time=new Time();
@@ -65,5 +66,7 @@
         }
         $Server->Sleepp();
     }
+    print_r($Server);
+        $Server->Backup();
 
     // 2 проверяем таблицы

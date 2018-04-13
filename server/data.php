@@ -2,7 +2,7 @@
 
 function GetClans()
 {
-    $file  = file_get_contents("config.json");
+    $file  = file_get_contents(realpath(dirname(__FILE__))."/../config.json");
     $config = json_decode($file, true);
     if ($config["source"]==1) {
         $connection; // Объект, отвечающий за подключение к БД
@@ -14,7 +14,11 @@ function GetClans()
         $connection->query("SET NAMES 'utf8'");
         $connection->query("SET CHARACTER SET 'utf8'");
         $connection->query("SET SESSION collation_connection = 'utf8_general_ci'");
-        $connection->query("USE {$config["database"]}");
+        $count=  $connection->query("SHOW DATABASES LIKE '{$config["emulator_database"]}'");
+        if (!$count->num_rows) {
+            return null;
+        }
+        $connection->query("USE {$config["emulator_database"]}");
         $result=$connection->query("SELECT * FROM clans");
         $data=array();
         while ($row = $result->fetch_assoc()) {
@@ -30,7 +34,7 @@ function GetClans()
 
 function GetClanData($id)
 {
-    $file  = file_get_contents("config.json");
+    $file  = file_get_contents(realpath(dirname(__FILE__))."/../config.json");
     $config = json_decode($file, true);
     if ($config["source"]==1) {
         $connection; // Объект, отвечающий за подключение к БД
@@ -42,7 +46,11 @@ function GetClanData($id)
         $connection->query("SET NAMES 'utf8'");
         $connection->query("SET CHARACTER SET 'utf8'");
         $connection->query("SET SESSION collation_connection = 'utf8_general_ci'");
-        $connection->query("USE {$config["database"]}");
+        $count=  $connection->query("SHOW DATABASES LIKE '{$config["emulator_database"]}'");
+        if (!$count->num_rows) {
+            return null;
+        }
+        $connection->query("USE {$config["emulator_database"]}");
         $result=$connection->query("SELECT * FROM clans");
         while ($row = $result->fetch_assoc()) {
             if ($row["id"]==$id) {
@@ -65,7 +73,7 @@ function GetClanData($id)
 
 function GetFights()
 {
-    $file  = file_get_contents("config.json");
+    $file  = file_get_contents(realpath(dirname(__FILE__))."/../config.json");
     $config = json_decode($file, true);
     if ($config["source"]==1) {
         $connection; // Объект, отвечающий за подключение к БД
@@ -77,12 +85,25 @@ function GetFights()
         $connection->query("SET NAMES 'utf8'");
         $connection->query("SET CHARACTER SET 'utf8'");
         $connection->query("SET SESSION collation_connection = 'utf8_general_ci'");
-        $connection->query("USE {$config["database"]}");
+        $count=  $connection->query("SHOW DATABASES LIKE '{$config["emulator_database"]}'");
+        if (!$count->num_rows) {
+            return null;
+        }
+        $connection->query("USE {$config["emulator_database"]}");
+        if ($connection->connect_errno) {
+            die("Unable to connect to MySQL server:".$connection->connect_errno.$connection->connect_error);
+        }
         $result=$connection->query("SELECT * FROM attacks");
         $result2=$connection->query("SELECT * FROM clans");
+        $clans=array();
+        while ($row = $result2->fetch_assoc()) {
+            array_push($clans, $row);
+        }
+        $array=array();
         $data=["attacker"=>null,"defender"=>null,"declared"=>null,"resolved"=>null];
         while ($row = $result->fetch_assoc()) {
-            while ($row2 = $result2->fetch_assoc()) {
+            $result2=$result3;
+            foreach ($clans as $row2) {
                 if ($row["attacker_id"]==$row2["id"]) {
                     $data["attacker"]=$row2["title"];
                 }
@@ -92,9 +113,9 @@ function GetFights()
             }
             $data["declared"]=date("Y-m-d H:i:s", $row["declared"]);
             $data["resolved"]=date("Y-m-d H:i:s", $row["resolved"]);
-            // array_push($data, $row);
+            array_push($array, $data);
         }
-        return $data;
+        return $array;
     } else {
         $file  = file_get_contents($config["attacks_url"].".json");
         $json = json_decode($file, true);

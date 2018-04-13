@@ -43,7 +43,7 @@ class Monitor
         $defender=$dt[1];
         $declared=$dt[2];
         $resolved=$dt[3];
-        $query = "USE {$this->config["database"]}";
+        $query = "USE {$this->config["emulator_database"]}";
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error ".$this->connection->connect_errno.$this->connection->connect_error);
@@ -93,7 +93,7 @@ class Monitor
 
         $fight=$_GET['fight'];
         $display_string = "<table><tr><th>Time</th><th>Text</><th>Event</th></tr>";
-        $result=$this->connection->query("SELECT * FROM logs WHERE fight=\"$fight\" ORDER BY timemark DESC");
+        $result=$this->connection->query("SELECT * FROM logs WHERE fight=\"$fight\" ORDER BY timemark");
         if (!$result) {
             die("Error-> ".$this->connection->connect_errno.$this->connection->connect_error);
         }

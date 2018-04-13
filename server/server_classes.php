@@ -16,7 +16,24 @@ class Server
 
     public function Sleepp() // Перевести сервер в спящий режим на вермя (время берется из config)
     {
-        sleep($this->config["server_sleep_time"]);
+        if ($this->config["server_sleep_time"]!=0) {
+            sleep($this->config["server_sleep_time"]);
+        } else {
+            $this->Pause();
+        }
+    }
+    public function Pause()
+    {
+        echo "\nAre you sure you want to do this?  Type 'yes' to continue: ";
+        $handle = fopen("php://stdin", "r");
+        $line = fgets($handle);
+        if (trim($line)) {
+            echo "ABORTING!\n";
+            exit;
+        }
+        fclose($handle);
+        echo "\n";
+        echo "Thank you, continuing...\n";
     }
 
     public function __construct()
@@ -34,7 +51,6 @@ class Server
     {
         $file  = file_get_contents(realpath(dirname(__FILE__))."/../config.json");
         $this->config = json_decode($file, true);
-        print_r($this->config);
     }
 
     public function NewFight() // Функция создание нового боя
@@ -74,12 +90,12 @@ class Server
 
     public function Check_server() // Функция проверки состояния баз в БД и самой БД, при необходимости создаем их (если БД "новая")
     {
-        $query = "CREATE DATABASE IF NOT EXISTS {$this->config["database"]}";
+        $query = "CREATE DATABASE IF NOT EXISTS {$this->config["emulator_database"]};\n";
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
-        $query = "USE {$this->config["database"]}";
+        $query = "USE {$this->config["emulator_database"]};\n";
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -92,14 +108,14 @@ class Server
     						  resolved NVARCHAR(128),
                   in_progress int,
     						  c1 NVARCHAR(128),
-    						  c2 NVARCHAR(128))";
+    						  c2 NVARCHAR(128));";
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
         }
         $query = "CREATE TABLE IF NOT EXISTS clans (
     						  id smallint(5) unsigned NOT NULL,
-    						  title varchar(128) DEFAULT NULL)";
+    						  title varchar(128) DEFAULT NULL);";
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -111,7 +127,7 @@ class Server
     						  frags SMALLINT UNSIGNED,
     						  deaths SMALLINT UNSIGNED,
     						  clan_id INT UNSIGNED NOT NULL,
-                  in_fight int)";
+                  in_fight int);";
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -121,7 +137,8 @@ class Server
     						  text1 NVARCHAR(128),
                   text2 NVARCHAR(128),
                   eventt NVARCHAR(128),
-                  fight NVARCHAR(128))";
+                  fight NVARCHAR(128));";
+        echo $query;
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -130,43 +147,66 @@ class Server
 
     public function NewClans() // Функция создания новых кланов (если создаем новый сервер и новые БД соответственно)
     {
-        if ($this->config["debug"]) {
-            echo "Made new!\n";
-        }
-        $homepage = file_get_contents('names.pkb', true); // возможные имена игроков находятся в файле names.pkb
-        $dt = explode("\n", $homepage);
-        if ($dt[count($dt)] == null) {
-            array_pop($dt);
-        }
-        if ($this->config["debug"]) {
-            print_r($dt);
-        }
-        for ($i = 0; $i < count($dt); $i++) {
-            for ($k = $i + 1; $k < count($dt); $k++) {
-                if (($i != $k) && ($dt[$i] == $dt[$k])) {
-                    $dt[$k] = null;
+        if ($this->config["ply"]==1) {
+            $cl=GetClans();
+            print_r($cl);
+            $Clans=array();
+            foreach ($cl as $cl_t) {
+                if ($cl_t["id"]!=171) {
+                    # code...
+
+                    $tmp=new Clan($cl_t["id"], $cl_t["title"]);
+                    $ply_t=GetClanData($cl_t["id"]);
+                    print_r($ply_t);
+                    foreach ($ply_t["players"] as $ply_tmp) {
+                        // for ($k = 0; $k < 29; $k++) {
+                        $pl=new Player($ply_tmp["id"], $ply_tmp["nick"], $ply_tmp["frags"], $ply_tmp["deaths"], $ply_tmp["level"], $cl_t["id"], 0);
+                        array_push($tmp->players, $pl);
+                        // $c++;
+                    }
+                    array_push($Clans, $tmp);
                 }
             }
-        }
-        $unc = array();
-        for ($i = 0; $i < count($dt); $i++) {
-            if ($dt[$i] != null) {
-                $unc[] = $dt[$i];
+            $this->Clans=$Clans;
+        } else {
+            if ($this->config["debug"]) {
+                echo "Made new!\n";
             }
-        }
-        $c = 0;
-        $Clans=array();
-        // Имен хватает на создание 10 кланов по 29 игроков в каждом
-        for ($i = 1; $i <= 10; $i++) {
-            $tmp=new Clan($i, "clan$i");
-            for ($k = 0; $k < 29; $k++) {
-                $pl=new Player($c, $unc[$c], 0, 0, 0, $i, 0);
-                array_push($tmp->players, $pl);
-                $c++;
+            $homepage = file_get_contents('names.pkb', true); // возможные имена игроков находятся в файле names.pkb
+            $dt = explode("\n", $homepage);
+            if ($dt[count($dt)] == null) {
+                array_pop($dt);
             }
-            array_push($Clans, $tmp);
+            if ($this->config["debug"]) {
+                print_r($dt);
+            }
+            for ($i = 0; $i < count($dt); $i++) {
+                for ($k = $i + 1; $k < count($dt); $k++) {
+                    if (($i != $k) && ($dt[$i] == $dt[$k])) {
+                        $dt[$k] = null;
+                    }
+                }
+            }
+            $unc = array();
+            for ($i = 0; $i < count($dt); $i++) {
+                if ($dt[$i] != null) {
+                    $unc[] = $dt[$i];
+                }
+            }
+            $c = 0;
+            $Clans=array();
+            // Имен хватает на создание 10 кланов по 29 игроков в каждом
+            for ($i = 1; $i <= 10; $i++) {
+                $tmp=new Clan($i, "clan$i");
+                for ($k = 0; $k < 29; $k++) {
+                    $pl=new Player($c, $unc[$c], 0, 0, 0, $i, 0);
+                    array_push($tmp->players, $pl);
+                    $c++;
+                }
+                array_push($Clans, $tmp);
+            }
+            $this->Clans=$Clans;
         }
-        $this->Clans=$Clans;
     }
 
     public function FindClan($id)
@@ -235,40 +275,50 @@ class Server
 
     public function Backup() // Функция резервного копирования текущего состаяния сервера в БД (для работы функции Restore)
     {
+        $query="";
         foreach ($this->Clans as $clan) {
+            // if ($clan->id!=171) {
             $data = $this->connection->query("SELECT * FROM clans WHERE id=$clan->id");
             if ($data->num_rows > 0) {
-                $query="UPDATE clans SET title=\"$clan->name\" WHERE id=$clan->id";
-                $result = $this->connection->query($query);
-                if (!$result) {
-                    die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
-                }
+                $query.="UPDATE clans SET title=\"$clan->name\" WHERE id=$clan->id;\n";
+            // echo $query;
+                // $result = $this->connection->query($query);
+                // if (!$result) {
+                //     die("Error during creating table999".$this->connection->connect_errno.$this->connection->connect_error);
+                // }
             } else {
-                $query="INSERT INTO clans (id,title) VALUES ($clan->id,\"$clan->name\")";
-                $result = $this->connection->query($query);
-                if (!$result) {
-                    die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
-                }
+                $query.="INSERT INTO clans (id,title) VALUES ($clan->id,\"$clan->name\");\n";
+                // echo $query;
+                // $result = $this->connection->query($query);
+                // if (!$result) {
+                //     die("Error during creating table123".$this->connection->connect_errno.$this->connection->connect_error);
+                // }
+                // }
             }
             foreach ($clan->players as $player) {
                 $data = $this->connection->query("SELECT * FROM players WHERE id=$player->id");
                 if ($data->num_rows > 0) {
-                    $query="UPDATE players SET nick=\"$player->nick\",frags=$player->frags,deaths=$player->deaths,level=$player->level,clan_id=$player->clan_id,in_fight=$player->in_fight WHERE id=$player->id";
-                    $result = $this->connection->query($query);
-                    if (!$result) {
-                        die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
-                    }
+                    $query.="UPDATE players SET nick=\"$player->nick\",frags=$player->frags,deaths=$player->deaths,level=$player->level,clan_id=$player->clan_id,in_fight=$player->in_fight WHERE id=$player->id;\n";
+                // $result = $this->connection->query($query);
+                    // if (!$result) {
+                    //     die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
+                    // }
                 } else {
-                    $query="INSERT INTO players (nick,frags,deaths,level,clan_id,id,in_fight) VALUES (\"$player->nick\",$player->frags,$player->deaths,$player->level,$player->clan_id,$player->id,$player->in_fight)";
-                    if ($this->config["debug"]) {
-                        echo $query;
-                    }
-                    $result = $this->connection->query($query);
-                    if (!$result) {
-                        die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
-                    }
+                    $query.="INSERT INTO players (nick,frags,deaths,level,clan_id,id,in_fight) VALUES (\"$player->nick\",$player->frags,$player->deaths,$player->level,$player->clan_id,$player->id,$player->in_fight);\n";
+                    // if ($this->config["debug"]) {
+                    //     echo $query;
+                    // }
+                    // $result = $this->connection->query($query);
+                    // if (!$result) {
+                    //     die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
+                    // }
                 }
             }
+        }
+        echo $query;
+        $result = $this->connection->query($query);
+        if (!$result) {
+            die("Error during creating table999".$this->connection->connect_errno.$this->connection->connect_error);
         }
         foreach ($this->Fights as $tab) {
             $c1=$this->MakeList($tab->c1);

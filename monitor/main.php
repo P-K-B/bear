@@ -38,7 +38,7 @@
             public function displayTable()
             {
                 $show = $_GET['show'];
-                $query = "USE {$this->config["database"]}";
+                $query = "USE {$this->config["emulator_database"]}";
                 $result = $this->connection->query($query);
                 if (!$result) {
                     die("Error ".$this->connection->connect_errno.$this->connection->connect_error);
