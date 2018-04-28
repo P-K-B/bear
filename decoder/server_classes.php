@@ -13,10 +13,12 @@ class Server
     public $connection; // Объект, отвечающий за подключение к БД
 
     public $config; // Объект, содержащий информацию о пользовательских настройках (подробнее в файле config.json)
-
+    public $del;
+    public $debug_info=array();
 
     public function Step($may_add_fight, $Time)
     {
+        $this->debug_info=array();
         $this->UpdateConfig();
         if (count($this->Fights) >= $this->config["max_fights_at_a_time"]) {
             $may_add_fight=1;
@@ -25,16 +27,14 @@ class Server
         }
         if ($Time->DeltaTime()>=$this->config["add_time"]) {
             if ($may_add_fight!=1) {
-                echo "here1\n";
                 $this->NewFight();
-                echo "here2\n";
                 $Time->Update();
                 if (count($this->Fights) >= $this->config["max_fights_at_a_time"]) {
                     $may_add_fight=1;
                 }
             }
         }
-        print_r($this->Fights);
+        // print_r($this->Fights);
         // if (count($Server->Fights) >= 1){
         //     for ($i=count($Server->Fights)-1;$i>=0;$i--) {
         //         if (($Server->Fights[$i]->resolved<=time()) && ($Server->Fights[$i]->in_progress == 0)) {
@@ -53,7 +53,6 @@ class Server
             foreach ($this->Fights as $key => $fight) {
                 // for ($i=count($Server->Fights)-1;$i>=0;$i--) {
                 if (($fight->resolved<=time()) && ($fight->in_progress == 0)) {
-                    echo "\n I->$i \n";
                     $fight->StartFight($this);
                 } elseif ($fight->in_progress == 1) {
                     $fight->Move($this);
@@ -79,7 +78,7 @@ class Server
 
     public function Sleepp() // Перевести сервер в спящий режим на вермя (время берется из config)
     {
-        if ($this->config["server_sleep_time"]!=0) {
+        if ($this->config["server_sleep_time"]!=-1) {
             sleep($this->config["server_sleep_time"]);
         } else {
             $this->Pause();
@@ -99,8 +98,9 @@ class Server
         echo "Thank you, continuing...\n";
     }
 
-    public function __construct()
+    public function __construct($del)
     {
+        $this->del=$del;
         $this->UpdateConfig();
         $this->Connect();
         $this->Check_server();
@@ -130,7 +130,7 @@ class Server
                 $resolved=time()+$add;
                 $attacker_id=$this->Clans[$rand1]->id;
                 $defender_id=$this->Clans[$rand2]->id;
-                $tmp=new Fight($attacker_id, $defender_id, time(), $resolved, 0, null, null); // Оаздаем объект боя
+                $tmp=new SV_Fight($attacker_id, $defender_id, time(), $resolved, 0, null, null); // Оаздаем объект боя
                 array_push($this->Fights, $tmp);
             }
         }
@@ -153,6 +153,13 @@ class Server
 
     public function Check_server() // Функция проверки состояния баз в БД и самой БД, при необходимости создаем их (если БД "новая")
     {
+        if ($this->del ==1) {
+            $query = "DROP DATABASE {$this->config["emulator_database"]};\n";
+            $result = $this->connection->query($query);
+            if (!$result) {
+                die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
+            }
+        }
         $query = "CREATE DATABASE IF NOT EXISTS {$this->config["emulator_database"]};\n";
         $result = $this->connection->query($query);
         if (!$result) {
@@ -201,7 +208,6 @@ class Server
                   text2 NVARCHAR(128),
                   eventt NVARCHAR(128),
                   fight NVARCHAR(128));";
-        echo $query;
         $result = $this->connection->query($query);
         if (!$result) {
             die("Error during creating table".$this->connection->connect_errno.$this->connection->connect_error);
@@ -212,18 +218,18 @@ class Server
     {
         if ($this->config["ply"]==1) {
             $cl=GetClans();
-            print_r($cl);
+            // print_r($cl);
             $Clans=array();
             foreach ($cl as $cl_t) {
                 if ($cl_t["id"]!=171) {
                     # code...
 
-                    $tmp=new Clan($cl_t["id"], $cl_t["title"]);
+                    $tmp=new SV_Clan($cl_t["id"], $cl_t["title"]);
                     $ply_t=GetClanData($cl_t["id"]);
-                    print_r($ply_t);
+                    // print_r($ply_t);
                     foreach ($ply_t["players"] as $ply_tmp) {
                         // for ($k = 0; $k < 29; $k++) {
-                        $pl=new Player($ply_tmp["id"], $ply_tmp["nick"], $ply_tmp["frags"], $ply_tmp["deaths"], $ply_tmp["level"], $cl_t["id"], 0);
+                        $pl=new SV_Player($ply_tmp["id"], $ply_tmp["nick"], $ply_tmp["frags"], $ply_tmp["deaths"], $ply_tmp["level"], $cl_t["id"], 0);
                         array_push($tmp->players, $pl);
                         // $c++;
                     }
@@ -241,7 +247,7 @@ class Server
                 array_pop($dt);
             }
             if ($this->config["debug"]) {
-                print_r($dt);
+                // print_r($dt);
             }
             for ($i = 0; $i < count($dt); $i++) {
                 for ($k = $i + 1; $k < count($dt); $k++) {
@@ -260,9 +266,9 @@ class Server
             $Clans=array();
             // Имен хватает на создание 10 кланов по 29 игроков в каждом
             for ($i = 1; $i <= 10; $i++) {
-                $tmp=new Clan($i, "clan$i");
+                $tmp=new SV_Clan($i, "clan$i");
                 for ($k = 0; $k < 29; $k++) {
-                    $pl=new Player($c, $unc[$c], 0, 0, 0, $i, 0);
+                    $pl=new SV_Player($c, $unc[$c], 0, 0, 0, $i, 0);
                     array_push($tmp->players, $pl);
                     $c++;
                 }
@@ -287,12 +293,12 @@ class Server
         $Clans=array();
         $result = $this->connection->query("SELECT * FROM clans");
         while ($row = $result->fetch_assoc()) {
-            $tmp=new Clan($row['id'], $row['title']);
+            $tmp=new SV_Clan($row['id'], $row['title']);
             array_push($Clans, $tmp);
         }
         $result = $this->connection->query("SELECT * FROM players");
         while ($row = $result->fetch_assoc()) {
-            $pl=new Player($row['id'], $row['nick'], $row['frags'], $row['deaths'], $row['level'], $row['clan_id'], $row['in_fight']);
+            $pl=new SV_Player($row['id'], $row['nick'], $row['frags'], $row['deaths'], $row['level'], $row['clan_id'], $row['in_fight']);
             $i=0;
             foreach ($Clans as $clan) {
                 if ($clan->id==$pl->clan_id) {
@@ -307,7 +313,7 @@ class Server
         while ($row = $result->fetch_assoc()) {
             $pl1=$this->FindPlayers($row['c1'], $row['attacker_id']);
             $pl2=$this->FindPlayers($row['c2'], $row['defender_id']);
-            $tmp=new Fight($row['attacker_id'], $row['defender_id'], $row['declared'], $row['resolved'], $row['in_progress'], $pl1, $pl2);
+            $tmp=new SV_Fight($row['attacker_id'], $row['defender_id'], $row['declared'], $row['resolved'], $row['in_progress'], $pl1, $pl2);
             array_push($Fights, $tmp);
         }
         $this->Fights=$Fights;
@@ -351,7 +357,7 @@ class Server
                 }
             } else {
                 $query="INSERT INTO clans (id,title) VALUES ($clan->id,\"$clan->name\");\n";
-                echo $query;
+                // echo $query;
                 $result = $this->connection->query($query);
                 if (!$result) {
                     die("Error during creating table123".$this->connection->connect_errno.$this->connection->connect_error);
@@ -368,7 +374,6 @@ class Server
                 } else {
                     $query="INSERT INTO players (nick,frags,deaths,level,clan_id,id,in_fight) VALUES (\"$player->nick\",$player->frags,$player->deaths,$player->level,$player->clan_id,$player->id,$player->in_fight);\n";
                     if ($this->config["debug"]) {
-                        echo $query;
                     }
                     $result = $this->connection->query($query);
                     if (!$result) {
@@ -400,7 +405,6 @@ class Server
                     goto abc;
                 }
                 if ($this->config["debug"]) {
-                    echo $query;
                 }
                 $result = $this->connection->query($query);
                 if (!$result) {
@@ -421,7 +425,7 @@ class Server
                     $query="INSERT INTO attacks (timemark,attacker_id,defender_id,declared,resolved,in_progress,c1,c2) VALUES (".time().",$tab->attacker_id,$tab->defender_id,$tab->declared,$tab->resolved,$tab->in_progress,NULL,NULL)";
                 }
                 if ($this->config["debug"]) {
-                    echo $query;
+                    // echo $query;
                 }
                 $result = $this->connection->query($query);
                 if (!$result) {
@@ -454,7 +458,7 @@ class Server
         }
         $query="INSERT INTO logs (timemark,text1,text2,eventt,fight) VALUES($time,\"$text1\",\"$text2\",\"$event\",\"$fight\")";
         if ($this->config["debug"]) {
-            echo $query;
+            // echo $query;
         }
         $result = $this->connection->query($query);
         if (!$result) {
@@ -481,7 +485,7 @@ class Server
         // Удаляем запись о данном бое из БД
         $query="DELETE FROM attacks WHERE attacker_id=$fight->attacker_id and defender_id=$fight->defender_id and resolved=$fight->resolved and declared=$fight->declared";
         if ($this->config["debug"]) {
-            echo $query;
+            // echo $query;
         }
         $result = $this->connection->query($query);
         if (!$result) {
@@ -505,7 +509,7 @@ class Server
     }
 }
 
-class Fight
+class SV_Fight
 {
     public $attacker_id; // id атакующего клана
     public $defender_id; // id защищающегося клана
@@ -559,11 +563,15 @@ class Fight
 
     public function Move($Server) // Функция "хода" (совершение убийства)
     {
+        $debug_killers=array();
+        $debug_deads=array();
         for ($i=0;$i<rand(1, $Server->config["max_move"]);$i++) { // Выбираем, сколько потенциальныз убийст может произайти
             if ((rand(1, $Server->config["kill_chance"]) ==1)&&($this->c1 && $this->c2)) {
                 if (rand(0, 1)==1) { // Убица из первого клаан
                     $killer=array_rand($this->c1); // выбираем убийцу
                     $dead=array_rand($this->c2); // выбираем убитого
+                    array_push($debug_killers, $this->c1[$killer]->id);
+                    array_push($debug_deads, $this->c2[$dead]->id);
                     $this->c1[$killer]->frags++;
                     $this->c2[$dead]->deaths++;
                     $this->c2[$dead]->in_fight=0;
@@ -577,6 +585,8 @@ class Fight
                 } else { // иначе из второго
                     $killer=array_rand($this->c2); // выбираем убийцу
                     $dead=array_rand($this->c1); // выбираем убитого
+                    array_push($debug_killers, $this->c2[$killer]->id);
+                    array_push($debug_deads, $this->c1[$dead]->id);
                     $this->c2[$killer]->frags++;
                     $this->c1[$dead]->deaths++;
                     $this->c1[$dead]->in_fight=0;
@@ -590,10 +600,13 @@ class Fight
                 }
             }
         }
+        array_push($Server->debug_info, $debug_killers);
+        array_push($Server->debug_info, $debug_deads);
+        // print_r($Server->debug_info);
     }
 }
 
-class Clan
+class SV_Clan
 {
     public $id; // id клана
     public $name; // имя клана
@@ -606,7 +619,7 @@ class Clan
     }
 }
 
-class Player
+class SV_Player
 {
     public $id; // id игрока
     public $nick; // ник игрока
@@ -628,7 +641,7 @@ class Player
     }
 }
 
-class Time
+class SV_Time
 {
     public $saved_time; // сохраненное время
 

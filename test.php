@@ -1,16 +1,22 @@
-<?php
-Pause();
+<html>
+<head></head>
+<title>Static Dropdown List</title>
+<body bgcolor="pink">
+Employee List :
+<select name=sel>
+  <option value="Select">Select</option>}
+  <option value="Vineet">Vineet Saini</option>
+  <option value="Sumit">Sumit Sharma</option>
+  <option value="Dorilal">Dorilal Agarwal</option>
+  <option value="Omveer">Omveer Singh</option>
+  <option value="Rohtash">Rohtash Kumar</option>
+  <option value="Maneesh">Maneesh Tewatia</option>
+  <option value="Priyanka">Priyanka Sachan</option>
+  <option value="Neha">Neha Saini</option>
+</select>
+<?php  if (isset($_POST['sel'])) {
+    alert($_POST['sel']);
+}?>
 
-function Pause()
-{
-    echo "Are you sure you want to do this?  Type 'yes' to continue: ";
-    $handle = fopen("php://stdin", "r");
-    $line = fgets($handle);
-    if (trim($line) != 'yes') {
-        echo "ABORTING!\n";
-        exit;
-    }
-    fclose($handle);
-    echo "\n";
-    echo "Thank you, continuing...\n";
-}
+</body>
+<html>

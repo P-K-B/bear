@@ -14,12 +14,19 @@
          $this->connection->query("SET CHARACTER SET 'utf8'");
          $this->connection->query("SET SESSION collation_connection = 'utf8_general_ci'");
          if ($this->connection && $this->config["debug"]) {
-             echo("Connected to MySQL server.\n");
+             // echo("Connected to MySQL server.\n");
          }
      }
 
      public function Check_server() // Функция проверки состояния баз в БД и самой БД, при необходимости создаем их (если БД "новая")
      {
+         if ($this->del==1) {
+             $query = "DROP DATABASE {$this->config["analyzer_database"]}";
+             $result = $this->connection->query($query);
+             if (!$result) {
+                 die("Error during creating table1".$this->connection->connect_errno.$this->connection->connect_error);
+             }
+         }
          $query = "CREATE DATABASE IF NOT EXISTS {$this->config["analyzer_database"]}";
          $result = $this->connection->query($query);
          if (!$result) {
@@ -113,7 +120,7 @@
              $data = $this->connection->query("SELECT * FROM clans WHERE id=$clan->id");
              if ($data->num_rows > 0) {
                  $query="UPDATE clans SET title=\"$clan->name\" WHERE id=$clan->id";
-                 // echo $query;
+                 // // echo $query;
                  $result = $this->connection->query($query);
                  if (!$result) {
                      die("Error during creating table999".$this->connection->connect_errno.$this->connection->connect_error);
@@ -138,7 +145,7 @@
                  } else {
                      $query="INSERT INTO players (nick,frags,deaths,level,clan_id,id) VALUES (\"$player->nick\",$player->frags,$player->deaths,$player->level,$player->clan_id,$player->id)";
                      if ($this->config["debug"]) {
-                         // echo $query;
+                         // // echo $query;
                      }
                      $result = $this->connection->query($query);
                      if (!$result) {
@@ -149,10 +156,11 @@
          }
 
          foreach ($this->Fights as $fight) {
+             // echo $fight->id;
              $data = $this->connection->query("SELECT * FROM attacks WHERE id=$fight->id");
              if ($data->num_rows > 0) {
                  $query="UPDATE attacks SET in_progress=$fight->in_progress,updated=$fight->updated WHERE id=$fight->id";
-                 // echo $query;
+                 // // echo $query;
                  $result = $this->connection->query($query);
                  if (!$result) {
                      die("Error during creating table999".$this->connection->connect_errno.$this->connection->connect_error);
@@ -169,7 +177,7 @@
                  $data = $this->connection->query("SELECT * FROM logs WHERE fight=$fight->id AND text1=\"$log\"");
                  if ($data->num_rows > 0) {
                      // $query="UPDATE attacks SET in_progress=$fight->in_progress,updated=$fight->updated WHERE id=$fight->id";
-                     // echo $query;
+                     // // echo $query;
                      // $result = $this->connection->query($query);
                      // if (!$result) {
                      //     die("Error during creating table999".$this->connection->connect_errno.$this->connection->connect_error);
@@ -177,7 +185,7 @@
                  } else {
                      $t=time();
                      $query="INSERT INTO logs (id,timemark,text1,text2,fight) VALUES "."(0,$t,\"$log\",NULL,$fight->id)";
-                     // echo $query;
+                     // // echo $query;
                      $result = $this->connection->query($query);
                      if (!$result) {
                          die("Error during creating table123".$this->connection->connect_errno.$this->connection->connect_error);
@@ -188,7 +196,7 @@
                  $data = $this->connection->query("SELECT * FROM tickets WHERE fight=$fight->id AND killers=\"{$ticket->GetKillers()}\" AND deads=\"{$ticket->GetDeads()}\"");
                  if ($data->num_rows > 0) {
                      // $query="UPDATE attacks SET in_progress=$fight->in_progress,updated=$fight->updated WHERE id=$fight->id";
-                     // echo $query;
+                     // // echo $query;
                      // $result = $this->connection->query($query);
                      // if (!$result) {
                      //     die("Error during creating table999".$this->connection->connect_errno.$this->connection->connect_error);
@@ -196,7 +204,7 @@
                  } else {
                      $t=time();
                      $query="INSERT INTO tickets (id,timemark,killers,deads,fight) VALUES "."(0,$t,\"{$ticket->GetKillers()}\",\"{$ticket->GetDeads()}\",$fight->id)";
-                     // echo $query;
+                     // // echo $query;
                      $result = $this->connection->query($query);
                      if (!$result) {
                          die("Error during creating 98765".$this->connection->connect_errno.$this->connection->connect_error);
@@ -207,14 +215,14 @@
          $data = $this->connection->query("SELECT * FROM extra WHERE field=\"at_id\"");
          if ($data->num_rows > 0) {
              $query="UPDATE extra SET data=$this->attack_id WHERE field=\"at_id\"";
-             // echo $query;
+             // // echo $query;
              $result = $this->connection->query($query);
              if (!$result) {
                  die("Error during creating table999".$this->connection->connect_errno.$this->connection->connect_error);
              }
          } else {
              $query="INSERT INTO extra (field,data) VALUES "."(\"at_id\",$this->attack_id)";
-             // echo $query;
+             // // echo $query;
              $result = $this->connection->query($query);
              if (!$result) {
                  die("Error during creating table123".$this->connection->connect_errno.$this->connection->connect_error);
@@ -244,6 +252,7 @@
          $result = $this->connection->query("SELECT * FROM attacks");
          $Fights=array();
          while ($row = $result->fetch_assoc()) {
+             // echo $row;
              $tmp=new Fight($row["id"], $row['attacker_id'], $row['defender_id'], $row['declared'], $row['resolved'], $row['in_progress'], $row["updated"]);
              array_push($Fights, $tmp);
          }
@@ -263,7 +272,7 @@
          }
          $query="INSERT INTO logs (timemark,textt,eventt,fight) VALUES($time,\"$textt\",\"$event\",\"$fight\")";
          if ($this->config["debug"]) {
-             // echo $query;
+             // // echo $query;
          }
          $result = $this->connection->query($query);
          if (!$result) {

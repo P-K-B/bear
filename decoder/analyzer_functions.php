@@ -74,6 +74,7 @@ trait Functions
 
     public function GetClanId($name)
     {
+        // echo count($this->Clans);
         foreach ($this->Clans as $clan) {
             if ($clan->name==$name) {
                 return $clan->id;
@@ -84,6 +85,16 @@ trait Functions
 
     public function UpdateFights()
     {
+        foreach ($this->Fights as $key=>$fight) {
+            if ($fight->for_delete==1) {
+                // Final Update
+                // $this->for_delete=1;
+                $this->Match2($fight);
+                unset($this->Fights[$key]);
+                sort($this->Fights);
+            }
+        }
+
         $data=GetFights();
         $new_fights=array();
         // print_r($data);
@@ -107,9 +118,10 @@ trait Functions
                     $fight->updated=1;
                 }
             }
-            echo "was->$was\n";
+            // echo "was->$was\n";
             if ($was!=1) {
                 $fight_tmp->id=$this->attack_id++;
+                $this->fights_played++;
                 array_push($this->Fights, $fight_tmp);
             }
         }
@@ -117,9 +129,10 @@ trait Functions
         foreach ($this->Fights as $key=>$fight) {
             if ($fight->updated==0) {
                 // Final Update
-                $this->Match2($fight);
-                unset($this->Fights[$key]);
-                sort($this->Fights);
+                $fight->for_delete=1;
+                // $this->Match2($fight);
+                // unset($this->Fights[$key]);
+                // sort($this->Fights);
             }
         }
     }
@@ -169,7 +182,10 @@ trait Functions
 
     public function EasyMatch($fight)
     {
-        echo "EasyMatch!\n";
+        // echo "EasyMatch!\n";
+        $this->debug_info=array();
+        $debug_killers=array();
+        $debug_deads=array();
         $attacker_clan=$this->GetClan($fight->attacker_id);
         $defender_clan=$this->GetClan($fight->defender_id);
         // attacker match
@@ -182,11 +198,18 @@ trait Functions
             $killers=$attacker_clan->killers;
             $deads=$defender_clan->deads;
         }
-        print_r($attacker_clan->killers);
-        print_r($defender_clan->deads);
+        // print_r($attacker_clan->killers);
+        // print_r($defender_clan->deads);
+        foreach ($attacker_clan->killers as $value) {
+            array_push($debug_killers, $value);
+        }
+        foreach ($defender_clan->deads as $value) {
+            array_push($debug_deads, $value);
+        }
         if ((count($killers)==count($deads))&&(count($killers)>=1)) {
             if (count($killers)==1) {
-                echo "Lets MATCH!\n";
+                // echo "Lets MATCH!\n";
+                $this->total++;
                 array_push($fight->log, "{$attacker_clan->killers[0]->nick} killed {$defender_clan->deads[0]->nick}");
                 unset($attacker_clan->killers[0]);
                 sort($attacker_clan->killers);
@@ -200,6 +223,7 @@ trait Functions
                 }
             } else {
                 // ticket
+                $this->total+=count($killers);
                 array_push($fight->tickets, new Ticket(null, $attacker_clan->killers, $defender_clan->deads));
                 $defender_clan->deads=array();
                 $attacker_clan->killers=array();
@@ -216,11 +240,20 @@ trait Functions
             $killers=$defender_clan->killers;
             $deads=$attacker_clan->deads;
         }
-        print_r($defender_clan->killers);
-        print_r($attacker_clan->deads);
+        // print_r($defender_clan->killers);
+        // print_r($attacker_clan->deads);
+        foreach ($defender_clan->killers as $value) {
+            array_push($debug_killers, $value);
+        }
+        foreach ($attacker_clan->deads as $value) {
+            array_push($debug_deads, $value);
+        }
+        array_push($this->debug_info, $debug_killers);
+        array_push($this->debug_info, $debug_deads);
         if ((count($killers)==count($deads))&&(count($killers)>=1)) {
             if (count($killers)==1) {
-                echo "Lets MATCH!\n";
+                // echo "Lets MATCH!\n";
+                $this->total++;
                 array_push($fight->log, "{$defender_clan->killers[0]->nick} killed {$attacker_clan->deads[0]->nick}");
                 unset($defender_clan->killers[0]);
                 sort($defender_clan->killers);
@@ -234,6 +267,7 @@ trait Functions
                 }
             } else {
                 // ticket
+                $this->total+=count($killers);
                 array_push($fight->tickets, new Ticket(null, $defender_clan->killers, $attacker_clan->deads));
                 $attacker_clan->deads=array();
                 $defender_clan->killers=array();
@@ -258,16 +292,16 @@ trait Functions
     {
         foreach ($this->Fights as $fight) {
             if ($fight->in_progress==1) {
-                echo "$fight->attacker_id VS $fight->defender_id -> ";
+                // echo "$fight->attacker_id VS $fight->defender_id -> ";
                 $vars1=$this->GetVars($fight->attacker_id);
                 $vars2=$this->GetVars($fight->defender_id);
                 if ((count($vars1)==1) && (count($vars2)==1)) {
                     if (($vars1[0]==$fight->defender_id)&&($vars2[0]==$fight->attacker_id)) {
-                        echo "easy fight\n";
+                        // echo "easy fight\n";
                         $this->EasyMatch($fight);
                     }
                 } else {
-                    echo "hard fight\n";
+                    // echo "hard fight\n";
                 }
             }
         }
@@ -277,29 +311,29 @@ trait Functions
     // {
     //     retry:
     //     // for ($j=0;$j<count($this->Fights);$j++) {
-    //     //     echo "I am here1!\n";
+    //     //     // echo "I am here1!\n";
     //     $kil=0;
     //     $ded=0;
     //     foreach ($this->Fights as $fight) {
     //         if ($fight->in_progress != 0) {
-    //             echo "I am here!\n";
+    //             // echo "I am here!\n";
     //             $attacker_clan=$this->GetClan($fight->attacker_id);
     //             $defender_clan=$this->GetClan($fight->defender_id);
     //             $kil+=count($attacker_clan->killers);
     //             $ded+=count($defender_clan->deads);
     //         }
     //     }
-    //     echo "kil->$kil and ded->$ded\n";
+    //     // echo "kil->$kil and ded->$ded\n";
     //     if ($kil!=$ded) {
     //         $attacker_clan->UpdatePlayers();
     //         $defender_clan->UpdatePlayers();
-    //         echo "Updating!\n";
+    //         // echo "Updating!\n";
     //         goto retry;
     //         throw new Exception('Данные не совпадают! '.$kil.' and '.$ded);
     //     }
     //     foreach ($this->Fights as $fight) {
     //         if ($fight->in_progress != 0) {
-    //             echo "I am here!\n";
+    //             // echo "I am here!\n";
     //             $attacker_clan=$this->GetClan($fight->attacker_id);
     //             $defender_clan=$this->GetClan($fight->defender_id);
     //             // step1
@@ -344,15 +378,15 @@ trait Functions
     }
     public function Pause()
     {
-        echo "\nAre you sure you want to do this?  Type 'yes' to continue: ";
+        // echo "\nAre you sure you want to do this?  Type 'yes' to continue: ";
         $handle = fopen("php://stdin", "r");
         $line = fgets($handle);
         if (trim($line)) {
-            echo "ABORTING!\n";
+            // echo "ABORTING!\n";
             exit;
         }
         fclose($handle);
-        echo "\n";
-        echo "Thank you, continuing...\n";
+        // echo "\n";
+        // echo "Thank you, continuing...\n";
     }
 }

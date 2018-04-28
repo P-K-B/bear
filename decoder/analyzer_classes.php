@@ -28,6 +28,7 @@ class Clan
     public function UpdatePlayers()
     {
         $data=GetClanData($this->id);
+        // print_r($data);
         foreach ($data["players"] as $player_tmp) {
             $pl=new Player($player_tmp["id"], $player_tmp["nick"], $player_tmp["frags"], $player_tmp["deaths"], $player_tmp["level"], $this->id);
             $was=0;
@@ -36,12 +37,12 @@ class Clan
                     $was=1;
                     $tmp=$player->Update($pl);
                     for ($i=0;$i<$tmp["frags"];$i++) {
-                        echo $player->nick." is a killer!\n";
+                        // echo $player->nick." is a killer!\n";
                         array_push($this->killers, null);
                         $this->killers[count($this->killers)-1]=$player;
                     }
                     for ($i=0;$i<$tmp["deaths"];$i++) {
-                        echo $player->nick." is a dead!\n";
+                        // echo $player->nick." is a dead!\n";
                         array_push($this->deads, null);
                         $this->deads[count($this->deads)-1]=$player;
                     }
@@ -134,6 +135,7 @@ class Fight
     public $in_progress; // флаг, активен ли бой
     public $log=array();
     public $updated=0;
+    public $for_delete=0;
     public $tickets=array();
 
     public function __construct($id, $a, $d, $de, $r, $u)
@@ -162,9 +164,18 @@ class Analyzer
     public $delete=0;
     public $attack_id=1;
 
-    public function __construct()
+    public $total=0;
+
+    public $del;
+
+    public $fights_played=0;
+
+    public $debug_info=array();
+
+    public function __construct($del)
     {
         exec("rm log.txt");
+        $this->del=$del;
         $this->log = fopen("log.txt", "x+");
         $this->UpdateConfig();
         $this->Connect();
